@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Read(//c/Program Files/nodejs//**)",
+      "Read(//c/Users/Manu/.nvm/**)",
+      "Read(//c/Users/Manu/**)",
+      "Bash(\"/c/Program Files/nodejs/npx\" create-next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;\" + $env:PATH; node --version; npx --version)",
+      "Skill(agent-browser)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;\" + $env:PATH; Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c npm run dev\" -WorkingDirectory \"C:\\\\Users\\\\Manu\\\\PROYECTOS DE TRABAJO\\\\Aprendizaje_Practicas\\\\fitvideoai-aprendizaje\\\\semana4\\\\fitplan-app\" -WindowStyle Hidden; Start-Sleep -Seconds 8; Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5 | Select-Object -ExpandProperty StatusCode)",
+      "PowerShell(agent-browser *)"
+    ]
+  }
+}

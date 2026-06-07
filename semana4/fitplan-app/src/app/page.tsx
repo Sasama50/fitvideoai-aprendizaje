@@ -1,0 +1,196 @@
+"use client";
+
+import { useState } from "react";
+
+type TipoPlan = "perdida-peso" | "ganancia-muscular" | "mantenimiento" | "";
+
+interface FormData {
+  nombre: string;
+  objetivo: string;
+  restricciones: string;
+  tipoPlan: TipoPlan;
+}
+
+export default function Home() {
+  const [formData, setFormData] = useState<FormData>({
+    nombre: "",
+    objetivo: "",
+    restricciones: "",
+    tipoPlan: "",
+  });
+  const [planConfirmado, setPlanConfirmado] = useState<FormData | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPlanConfirmado({ ...formData });
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const etiquetasPlan: Record<TipoPlan, string> = {
+    "perdida-peso": "Pérdida de peso",
+    "ganancia-muscular": "Ganancia muscular",
+    "mantenimiento": "Mantenimiento",
+    "": "",
+  };
+
+  return (
+    <main
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
+      style={{ backgroundColor: "#1a1a2e" }}
+    >
+      <div className="w-full max-w-lg">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-white mb-3">FitPlan AI</h1>
+          <p className="text-gray-400 text-sm">
+            Genera tu plan nutricional personalizado con inteligencia artificial
+          </p>
+        </div>
+
+        {/* Card del formulario */}
+        <div
+          className="rounded-2xl p-8 shadow-2xl"
+          style={{ backgroundColor: "#16213e" }}
+        >
+          <h2 className="text-xl font-semibold text-white mb-6">
+            Datos del cliente
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Nombre */}
+            <div>
+              <label
+                htmlFor="nombre"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Nombre del cliente
+              </label>
+              <input
+                id="nombre"
+                name="nombre"
+                type="text"
+                required
+                placeholder="Ej: María García"
+                value={formData.nombre}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                style={{ backgroundColor: "#0f3460" }}
+              />
+            </div>
+
+            {/* Objetivo */}
+            <div>
+              <label
+                htmlFor="objetivo"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Objetivo
+              </label>
+              <textarea
+                id="objetivo"
+                name="objetivo"
+                required
+                rows={3}
+                placeholder="Ej: Quiero bajar 5 kg en 3 meses y mejorar mi energía diaria"
+                value={formData.objetivo}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
+                style={{ backgroundColor: "#0f3460" }}
+              />
+            </div>
+
+            {/* Restricciones alimentarias */}
+            <div>
+              <label
+                htmlFor="restricciones"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Restricciones alimentarias
+              </label>
+              <textarea
+                id="restricciones"
+                name="restricciones"
+                rows={3}
+                placeholder="Ej: Intolerante a la lactosa, alergia a los frutos secos, vegetariano…"
+                value={formData.restricciones}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
+                style={{ backgroundColor: "#0f3460" }}
+              />
+            </div>
+
+            {/* Tipo de plan */}
+            <div>
+              <label
+                htmlFor="tipoPlan"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Tipo de plan
+              </label>
+              <select
+                id="tipoPlan"
+                name="tipoPlan"
+                required
+                value={formData.tipoPlan}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition appearance-none cursor-pointer"
+                style={{ backgroundColor: "#0f3460" }}
+              >
+                <option value="" disabled style={{ color: "#6b7280" }}>
+                  Selecciona un tipo de plan
+                </option>
+                <option value="perdida-peso">Pérdida de peso</option>
+                <option value="ganancia-muscular">Ganancia muscular</option>
+                <option value="mantenimiento">Mantenimiento</option>
+              </select>
+            </div>
+
+            {/* Botón */}
+            <button
+              type="submit"
+              className="w-full py-3 rounded-lg font-semibold text-white text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 mt-2"
+              style={{ backgroundColor: "#e94560" }}
+            >
+              Generar plan
+            </button>
+          </form>
+        </div>
+
+        {/* Confirmación */}
+        {planConfirmado && (
+          <div
+            className="rounded-2xl p-8 shadow-2xl mt-6"
+            style={{ backgroundColor: "#14532d" }}
+          >
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Plan generado para {planConfirmado.nombre}
+            </h2>
+            <ul className="space-y-3 text-sm text-green-100">
+              <li>
+                <span className="font-medium text-green-300">Objetivo:</span>{" "}
+                {planConfirmado.objetivo}
+              </li>
+              <li>
+                <span className="font-medium text-green-300">
+                  Restricciones:
+                </span>{" "}
+                {planConfirmado.restricciones || "Ninguna"}
+              </li>
+              <li>
+                <span className="font-medium text-green-300">
+                  Tipo de plan:
+                </span>{" "}
+                {etiquetasPlan[planConfirmado.tipoPlan]}
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
