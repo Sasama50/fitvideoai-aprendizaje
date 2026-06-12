@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type TipoPlan = "perdida-peso" | "ganancia-muscular" | "mantenimiento" | "";
 
@@ -19,10 +20,21 @@ export default function Home() {
     tipoPlan: "",
   });
   const [planConfirmado, setPlanConfirmado] = useState<FormData | null>(null);
+  const [guardado, setGuardado] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPlanConfirmado({ ...formData });
+    setGuardado(false);
+
+    await supabase.from("clientes").insert({
+      nombre: formData.nombre,
+      objetivo: formData.objetivo,
+      restricciones: formData.restricciones,
+      tipo_plan: formData.tipoPlan,
+    });
+
+    setGuardado(true);
   };
 
   const handleChange = (
@@ -188,6 +200,11 @@ export default function Home() {
                 {etiquetasPlan[planConfirmado.tipoPlan]}
               </li>
             </ul>
+            {guardado && (
+              <p className="mt-4 text-sm font-medium text-green-300">
+                Guardado en la base de datos ✓
+              </p>
+            )}
           </div>
         )}
       </div>
