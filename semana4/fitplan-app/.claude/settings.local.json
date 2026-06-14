@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(New-Item *)"
+      "Bash(New-Item *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Skill(agent-browser)",
+      "PowerShell(agent-browser *)",
+      "Bash(npm run *)"
     ]
   }
 }

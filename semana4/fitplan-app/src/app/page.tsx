@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type TipoPlan = "perdida-peso" | "ganancia-muscular" | "mantenimiento" | "";
@@ -68,6 +69,12 @@ export default function Home() {
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-10 relative">
+          <Link
+            href="/clientes"
+            className="absolute top-0 left-0 text-xs text-gray-400 hover:text-white transition"
+          >
+            Ver clientes →
+          </Link>
           <h1 className="text-4xl font-bold text-white mb-3">FitPlan AI</h1>
           <p className="text-gray-400 text-sm">
             Genera tu plan nutricional personalizado con inteligencia artificial
