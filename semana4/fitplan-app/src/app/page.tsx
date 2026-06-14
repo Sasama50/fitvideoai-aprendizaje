@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 type TipoPlan = "perdida-peso" | "ganancia-muscular" | "mantenimiento" | "";
 
@@ -13,6 +14,7 @@ interface FormData {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     nombre: "",
     objetivo: "",
@@ -22,11 +24,19 @@ export default function Home() {
   const [planConfirmado, setPlanConfirmado] = useState<FormData | null>(null);
   const [guardado, setGuardado] = useState(false);
 
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPlanConfirmado({ ...formData });
     setGuardado(false);
 
+    const supabase = createClient();
     await supabase.from("clientes").insert({
       nombre: formData.nombre,
       objetivo: formData.objetivo,
@@ -57,11 +67,17 @@ export default function Home() {
     >
       <div className="w-full max-w-lg">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 relative">
           <h1 className="text-4xl font-bold text-white mb-3">FitPlan AI</h1>
           <p className="text-gray-400 text-sm">
             Genera tu plan nutricional personalizado con inteligencia artificial
           </p>
+          <button
+            onClick={handleSignOut}
+            className="absolute top-0 right-0 text-xs text-gray-400 hover:text-white transition px-3 py-1 rounded-lg border border-gray-600 hover:border-gray-400"
+          >
+            Cerrar sesión
+          </button>
         </div>
 
         {/* Card del formulario */}
