@@ -12,13 +12,16 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, responseHeaders) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
+          );
+          Object.entries(responseHeaders).forEach(([key, value]) =>
+            supabaseResponse.headers.set(key, value)
           );
         },
       },
@@ -30,7 +33,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublicRoute = pathname === "/login" || pathname === "/registro";
+  const isPublicRoute =
+    pathname === "/login" ||
+    pathname === "/registro" ||
+    pathname === "/success" ||
+    pathname.startsWith("/api/");
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

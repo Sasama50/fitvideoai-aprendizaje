@@ -24,6 +24,7 @@ export default function Home() {
   });
   const [planConfirmado, setPlanConfirmado] = useState<FormData | null>(null);
   const [guardado, setGuardado] = useState(false);
+  const [cargandoPago, setCargandoPago] = useState(false);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -194,6 +195,27 @@ export default function Home() {
               Generar plan
             </button>
           </form>
+        </div>
+
+        {/* Botón de suscripción */}
+        <div className="mt-4">
+          <button
+            onClick={async () => {
+              setCargandoPago(true);
+              try {
+                const res = await fetch("/api/checkout", { method: "POST" });
+                const { url } = await res.json();
+                window.location.href = url;
+              } finally {
+                setCargandoPago(false);
+              }
+            }}
+            disabled={cargandoPago}
+            className="w-full py-3 rounded-lg font-semibold text-white text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ backgroundColor: "#e94560" }}
+          >
+            {cargandoPago ? "Redirigiendo…" : "Suscribirse — €49/mes"}
+          </button>
         </div>
 
         {/* Confirmación */}
