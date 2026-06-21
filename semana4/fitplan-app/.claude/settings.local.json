@@ -7,7 +7,12 @@
       "Bash(git push *)",
       "Skill(agent-browser)",
       "PowerShell(agent-browser *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node -e \"const p = require\\('./node_modules/@supabase/ssr/package.json'\\); console.log\\(p.version, p.exports ? Object.keys\\(p.exports\\) : 'no exports field'\\)\")",
+      "Bash(node -e \"const p = require\\('./node_modules/@supabase/ssr/package.json'\\); console.log\\(JSON.stringify\\({version: p.version, main: p.main, module: p.module, exports: p.exports, sideEffects: p.sideEffects}, null, 2\\)\\)\")",
+      "Bash(Get-ChildItem node_modules\\\\@supabase\\\\ssr -Name)",
+      "Bash(Select-Object -First 20)",
+      "Bash(node *)"
     ]
   }
 }
