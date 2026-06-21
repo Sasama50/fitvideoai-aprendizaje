@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -21,9 +22,21 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    console.log("checkout.session.completed:", {
-      sessionId: session.id,
-      email: session.customer_details?.email ?? session.customer_email,
+    const sessionId = session.id;
+    const email = session.customer_details?.email ?? session.customer_email;
+
+    console.log("checkout.session.completed:", { sessionId, email });
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!
+    );
+
+    await supabase.from("pagos").insert({
+      email,
+      session_id: sessionId,
+      plan: "pro",
+      activo: true,
     });
   }
 
