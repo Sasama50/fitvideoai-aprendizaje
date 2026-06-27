@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import GenerarGuionButton from "@/components/GenerarGuionButton";
+import GenerarVideoButton from "@/components/GenerarVideoButton";
 
 const etiquetasPlan: Record<string, string> = {
   "perdida-peso": "Pérdida de peso",
@@ -84,6 +86,22 @@ export default async function Clientes() {
                 <p className="text-gray-500 text-xs mt-4">
                   {formatearFecha(cliente.created_at)}
                 </p>
+                <GenerarGuionButton
+                  clienteId={cliente.id}
+                  nombre={cliente.nombre}
+                  objetivo={cliente.objetivo}
+                  restricciones={cliente.restricciones ?? null}
+                  tipoPlan={cliente.tipo_plan}
+                  guionInicial={cliente.guion ?? null}
+                />
+                {cliente.guion && (
+                  <GenerarVideoButton
+                    clienteId={cliente.id}
+                    guion={cliente.guion}
+                    videoIdInicial={cliente.video_id ?? null}
+                    videoUrlInicial={cliente.video_url ?? null}
+                  />
+                )}
               </div>
             ))}
           </div>
