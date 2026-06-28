@@ -3,22 +3,11 @@
 import { useState } from "react";
 
 interface Props {
-  clienteId: string;
-  nombre: string;
-  objetivo: string;
-  restricciones: string | null;
-  tipoPlan: string;
+  clienteId: number;
   guionInicial: string | null;
 }
 
-export default function GenerarGuionButton({
-  clienteId,
-  nombre,
-  objetivo,
-  restricciones,
-  tipoPlan,
-  guionInicial,
-}: Props) {
+export default function GenerarGuionButton({ clienteId, guionInicial }: Props) {
   const [estado, setEstado] = useState<"idle" | "loading" | "done" | "error">(
     guionInicial ? "done" : "idle"
   );
@@ -30,13 +19,7 @@ export default function GenerarGuionButton({
       const res = await fetch("/api/generar-guion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cliente_id: clienteId,
-          nombre,
-          objetivo,
-          restricciones,
-          tipo_plan: tipoPlan,
-        }),
+        body: JSON.stringify({ clienteId }),
       });
 
       if (!res.ok) throw new Error("Error en la respuesta");
