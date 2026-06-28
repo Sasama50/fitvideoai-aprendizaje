@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 interface Props {
-  clienteId: string;
+  clienteId: number;
   guion: string;
   videoIdInicial: string | null;
   videoUrlInicial: string | null;
