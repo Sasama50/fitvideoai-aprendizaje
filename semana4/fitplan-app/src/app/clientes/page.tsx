@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import GenerarGuionButton from '@/components/GenerarGuionButton'
 import GenerarVideoButton from '@/components/GenerarVideoButton'
 import FormularioPlan from '@/components/FormularioPlan'
+import BotonesAudio from '@/components/BotonesAudio'
 import type { PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-types'
 
 type Cliente = {
@@ -18,6 +19,9 @@ type Cliente = {
   guion: string | null
   video_id: string | null
   video_url: string | null
+  audio_status: string | null
+  audio_url: string | null
+  link_cliente: string | null
 }
 
 const etiquetasPlan: Record<string, string> = {
@@ -182,6 +186,12 @@ export default function Clientes() {
                       videoUrlInicial={cliente.video_url ?? null}
                     />
                   )}
+                  <BotonesAudio
+                    clienteId={cliente.id}
+                    audioStatus={cliente.audio_status}
+                    audioUrl={cliente.audio_url}
+                    linkCliente={cliente.link_cliente}
+                  />
                 </div>
 
                 {/* Panel FormularioPlan expandible */}
