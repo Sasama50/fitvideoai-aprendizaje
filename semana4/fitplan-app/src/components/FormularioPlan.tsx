@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { PlanNutricion, PlanEntrenamiento, Comida, Sesion, Ejercicio } from '@/lib/supabase-types'
+import type { PlanNutricion, PlanEntrenamiento, Comida, Ejercicio } from '@/lib/supabase-types'
 
 type Props = {
   clienteId: number
@@ -34,7 +34,7 @@ const sesionVacia = (nombre: string): { nombre: string; ejercicios: Ejercicio[] 
 type ComidaForm = Comida & { ingredientesTexto: string }
 type SesionForm = { nombre: string; ejercicios: Ejercicio[] }
 
-export default function FormularioPlan({ clienteId: _clienteId, onGuardar }: Props) {
+export default function FormularioPlan({ onGuardar }: Props) {
   const [nutricionAbierta, setNutricionAbierta] = useState(true)
   const [entrenamientoAbierto, setEntrenamientoAbierto] = useState(false)
 
