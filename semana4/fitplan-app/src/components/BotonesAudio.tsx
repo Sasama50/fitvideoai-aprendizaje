@@ -37,8 +37,8 @@ export default function BotonesAudio({
       setAudioLocal(data.audio_url)
       setLinkLocal(data.link_token)
       onAudioGenerado?.(data.audio_url, data.link_token)
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error desconocido')
     } finally {
       setCargando(false)
     }
