@@ -7,6 +7,7 @@ import GenerarGuionButton from '@/components/GenerarGuionButton'
 import GenerarVideoButton from '@/components/GenerarVideoButton'
 import FormularioPlan from '@/components/FormularioPlan'
 import BotonesAudio from '@/components/BotonesAudio'
+import BotonEnviarPlan from '@/components/BotonEnviarPlan'
 import type { PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-types'
 
 type Cliente = {
@@ -192,6 +193,12 @@ export default function Clientes() {
                     audioUrl={cliente.audio_url}
                     linkCliente={cliente.link_cliente}
                   />
+                  <div className="mt-3">
+                    <BotonEnviarPlan
+                      clienteId={String(cliente.id)}
+                      nombreCliente={cliente.nombre ?? 'cliente'}
+                    />
+                  </div>
                 </div>
 
                 {/* Panel FormularioPlan expandible */}
