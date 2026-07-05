@@ -8,6 +8,8 @@ import GenerarVideoButton from '@/components/GenerarVideoButton'
 import FormularioPlan from '@/components/FormularioPlan'
 import BotonesAudio from '@/components/BotonesAudio'
 import BotonEnviarPlan from '@/components/BotonEnviarPlan'
+import BotonRecordatorio from '@/components/BotonRecordatorio'
+import TarjetaCliente, { necesitaRecordatorio } from '@/components/TarjetaCliente'
 import type { PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-types'
 
 type Cliente = {
@@ -23,6 +25,8 @@ type Cliente = {
   audio_status: string | null
   audio_url: string | null
   link_cliente: string | null
+  link_visto_at: string | null
+  link_visto_count: number
 }
 
 const etiquetasPlan: Record<string, string> = {
@@ -164,9 +168,12 @@ export default function Clientes() {
                     </div>
                   </div>
 
-                  <p className="text-gray-500 text-xs mt-4">
-                    {formatearFecha(cliente.created_at)}
-                  </p>
+                  <div className="flex items-center gap-2 mt-4">
+                    <p className="text-gray-500 text-xs">
+                      {formatearFecha(cliente.created_at)}
+                    </p>
+                    <TarjetaCliente cliente={cliente} />
+                  </div>
 
                   {/* Mensaje de éxito */}
                   {exitoId === cliente.id && (
@@ -193,11 +200,14 @@ export default function Clientes() {
                     audioUrl={cliente.audio_url}
                     linkCliente={cliente.link_cliente}
                   />
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <BotonEnviarPlan
                       clienteId={String(cliente.id)}
                       nombreCliente={cliente.nombre ?? 'cliente'}
                     />
+                    {necesitaRecordatorio(cliente) && (
+                      <BotonRecordatorio clienteId={String(cliente.id)} />
+                    )}
                   </div>
                 </div>
 
