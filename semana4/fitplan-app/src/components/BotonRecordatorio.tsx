@@ -6,11 +6,11 @@ export default function BotonRecordatorio({
   email,
 }: {
   clienteId: string
-  email?: string
+  email?: string | null
 }) {
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
-  const [emailInput, setEmailInput] = useState(email || '')
+  const [emailInput, setEmailInput] = useState(email ?? '')
   const [mostrarInput, setMostrarInput] = useState(!email)
 
   async function enviarRecordatorio() {

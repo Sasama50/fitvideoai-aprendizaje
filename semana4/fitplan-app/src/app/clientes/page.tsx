@@ -16,6 +16,7 @@ type Cliente = {
   id: number
   created_at: string
   nombre: string | null
+  email: string | null
   objetivo: string | null
   restricciones: string | null
   tipo_plan: string | null
@@ -204,9 +205,10 @@ export default function Clientes() {
                     <BotonEnviarPlan
                       clienteId={String(cliente.id)}
                       nombreCliente={cliente.nombre ?? 'cliente'}
+                      email={cliente.email}
                     />
                     {necesitaRecordatorio(cliente) && (
-                      <BotonRecordatorio clienteId={String(cliente.id)} />
+                      <BotonRecordatorio clienteId={String(cliente.id)} email={cliente.email} />
                     )}
                   </div>
                 </div>
