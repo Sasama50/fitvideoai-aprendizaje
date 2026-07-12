@@ -5,16 +5,27 @@ import { useState } from "react";
 interface Props {
   clienteId: number;
   guionInicial: string | null;
+  bloqueado?: boolean;
+  motivoBloqueo?: string;
+  onGuionGenerado?: (guion: string) => void;
 }
 
-export default function GenerarGuionButton({ clienteId, guionInicial }: Props) {
+export default function GenerarGuionButton({
+  clienteId,
+  guionInicial,
+  bloqueado = false,
+  motivoBloqueo,
+  onGuionGenerado,
+}: Props) {
   const [estado, setEstado] = useState<"idle" | "loading" | "done" | "error">(
     guionInicial ? "done" : "idle"
   );
   const [guion, setGuion] = useState<string>(guionInicial ?? "");
+  const [error, setError] = useState<string>("");
 
   async function generarGuion() {
     setEstado("loading");
+    setError("");
     try {
       const res = await fetch("/api/generar-guion", {
         method: "POST",
@@ -22,14 +33,33 @@ export default function GenerarGuionButton({ clienteId, guionInicial }: Props) {
         body: JSON.stringify({ clienteId }),
       });
 
-      if (!res.ok) throw new Error("Error en la respuesta");
-
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error en la respuesta");
+
       setGuion(data.guion);
       setEstado("done");
-    } catch {
+      onGuionGenerado?.(data.guion);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error desconocido");
       setEstado("error");
     }
+  }
+
+  if (bloqueado) {
+    return (
+      <div className="mt-4">
+        <button
+          disabled
+          className="text-xs font-medium px-4 py-2 rounded-full opacity-40 cursor-not-allowed"
+          style={{ backgroundColor: "#e94560", color: "#fff" }}
+        >
+          Generar guión
+        </button>
+        <p className="text-amber-400 text-xs mt-2">
+          {motivoBloqueo || "Aprueba el plan antes de generar el guión."}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -47,7 +77,7 @@ export default function GenerarGuionButton({ clienteId, guionInicial }: Props) {
 
       {estado === "error" && (
         <p className="text-red-400 text-xs mt-2">
-          Error al generar el guión. Inténtalo de nuevo.
+          {error || "Error al generar el guión. Inténtalo de nuevo."}
         </p>
       )}
 

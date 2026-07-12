@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
-const supabase = createClient(
+const supabase = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!
 )
@@ -13,11 +14,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'clienteId requerido' }, { status: 400 })
   }
 
+  const supabaseAuth = createServerClient()
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'no_autenticado' }, { status: 401 })
+  }
+
+  const { data: profesional, error: profesionalError } = await supabase
+    .from('profesionales')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profesionalError || !profesional) {
+    return NextResponse.json({ error: 'profesional_no_encontrado' }, { status: 400 })
+  }
+
   // 1. Obtener datos del cliente
   const { data: cliente, error: fetchError } = await supabase
     .from('clientes')
     .select('guion, semana_numero, link_cliente')
     .eq('id', clienteId)
+    .eq('profesional_id', profesional.id)
     .single()
 
   if (fetchError || !cliente) {
@@ -107,6 +128,7 @@ export async function POST(req: NextRequest) {
       link_cliente: linkToken,
     })
     .eq('id', clienteId)
+    .eq('profesional_id', profesional.id)
 
   return NextResponse.json({
     audio_url: urlData.publicUrl,

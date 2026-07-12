@@ -4,25 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-
-type TipoPlan = "perdida-peso" | "ganancia-muscular" | "mantenimiento" | "";
-
-interface FormData {
-  nombre: string;
-  objetivo: string;
-  restricciones: string;
-  tipoPlan: TipoPlan;
-}
+import FormularioIntakeCliente, {
+  type ClienteIntakeValues,
+} from "@/components/FormularioIntakeCliente";
 
 export default function Home() {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
-    nombre: "",
-    objetivo: "",
-    restricciones: "",
-    tipoPlan: "",
-  });
-  const [planConfirmado, setPlanConfirmado] = useState<FormData | null>(null);
+  const [planConfirmado, setPlanConfirmado] = useState<ClienteIntakeValues | null>(null);
   const [guardado, setGuardado] = useState(false);
   const [cargandoPago, setCargandoPago] = useState(false);
   const [errorCliente, setErrorCliente] = useState("");
@@ -64,8 +52,7 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (valores: ClienteIntakeValues) => {
     setErrorCliente("");
     setLimiteAlcanzado(null);
 
@@ -73,10 +60,23 @@ export default function Home() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nombre: formData.nombre,
-        objetivo: formData.objetivo,
-        restricciones: formData.restricciones,
-        tipo_plan: formData.tipoPlan,
+        nombre: valores.nombre,
+        objetivo: valores.objetivo,
+        restricciones: valores.restricciones,
+        tipo_plan: valores.tipoPlan,
+        preferencias_alimentarias: valores.preferenciasAlimentarias,
+        nivel_experiencia: valores.nivelExperiencia,
+        equipamiento_disponible: valores.equipamientoDisponible,
+        historial_lesiones: valores.historialLesiones,
+        edad: valores.edad ? Number(valores.edad) : null,
+        peso_kg: valores.pesoKg ? Number(valores.pesoKg) : null,
+        altura_cm: valores.alturaCm ? Number(valores.alturaCm) : null,
+        sexo_biologico: valores.sexoBiologico || null,
+        nivel_actividad: valores.nivelActividad || null,
+        metodo_calculo: valores.metodoCalculo,
+        objetivo_calorico_manual: valores.objetivoCaloricoManual
+          ? Number(valores.objetivoCaloricoManual)
+          : null,
       }),
     });
 
@@ -91,17 +91,11 @@ export default function Home() {
       return;
     }
 
-    setPlanConfirmado({ ...formData });
+    setPlanConfirmado(valores);
     setGuardado(true);
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const etiquetasPlan: Record<TipoPlan, string> = {
+  const etiquetasPlan: Record<ClienteIntakeValues["tipoPlan"], string> = {
     "perdida-peso": "Pérdida de peso",
     "ganancia-muscular": "Ganancia muscular",
     "mantenimiento": "Mantenimiento",
@@ -140,111 +134,10 @@ export default function Home() {
           style={{ backgroundColor: "#16213e" }}
         >
           <h2 className="text-xl font-semibold text-white mb-6">
-            Datos del cliente
+            Perfil del cliente
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Nombre */}
-            <div>
-              <label
-                htmlFor="nombre"
-                className="block text-sm font-medium text-gray-300 mb-1"
-              >
-                Nombre del cliente
-              </label>
-              <input
-                id="nombre"
-                name="nombre"
-                type="text"
-                required
-                placeholder="Ej: María García"
-                value={formData.nombre}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                style={{ backgroundColor: "#0f3460" }}
-              />
-            </div>
-
-            {/* Objetivo */}
-            <div>
-              <label
-                htmlFor="objetivo"
-                className="block text-sm font-medium text-gray-300 mb-1"
-              >
-                Objetivo
-              </label>
-              <textarea
-                id="objetivo"
-                name="objetivo"
-                required
-                rows={3}
-                placeholder="Ej: Quiero bajar 5 kg en 3 meses y mejorar mi energía diaria"
-                value={formData.objetivo}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
-                style={{ backgroundColor: "#0f3460" }}
-              />
-            </div>
-
-            {/* Restricciones alimentarias */}
-            <div>
-              <label
-                htmlFor="restricciones"
-                className="block text-sm font-medium text-gray-300 mb-1"
-              >
-                Restricciones alimentarias
-              </label>
-              <textarea
-                id="restricciones"
-                name="restricciones"
-                rows={3}
-                placeholder="Ej: Intolerante a la lactosa, alergia a los frutos secos, vegetariano…"
-                value={formData.restricciones}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
-                style={{ backgroundColor: "#0f3460" }}
-              />
-            </div>
-
-            {/* Tipo de plan */}
-            <div>
-              <label
-                htmlFor="tipoPlan"
-                className="block text-sm font-medium text-gray-300 mb-1"
-              >
-                Tipo de plan
-              </label>
-              <select
-                id="tipoPlan"
-                name="tipoPlan"
-                required
-                value={formData.tipoPlan}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition appearance-none cursor-pointer"
-                style={{ backgroundColor: "#0f3460" }}
-              >
-                <option value="" disabled style={{ color: "#6b7280" }}>
-                  Selecciona un tipo de plan
-                </option>
-                <option value="perdida-peso">Pérdida de peso</option>
-                <option value="ganancia-muscular">Ganancia muscular</option>
-                <option value="mantenimiento">Mantenimiento</option>
-              </select>
-            </div>
-
-            {errorCliente && (
-              <p className="text-sm text-red-400">{errorCliente}</p>
-            )}
-
-            {/* Botón */}
-            <button
-              type="submit"
-              className="w-full py-3 rounded-lg font-semibold text-white text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 mt-2"
-              style={{ backgroundColor: "#e94560" }}
-            >
-              Generar plan
-            </button>
-          </form>
+          <FormularioIntakeCliente onSubmit={handleSubmit} error={errorCliente} />
         </div>
 
         {/* Selector de suscripción */}

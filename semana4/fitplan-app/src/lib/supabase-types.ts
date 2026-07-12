@@ -1,3 +1,5 @@
+import type { SexoBiologico, NivelActividad, MetodoCalculo } from './tdee'
+
 export type Ejercicio = {
   nombre: string
   series: number
@@ -21,11 +23,16 @@ export type PlanNutricion = {
   calorias_objetivo?: number
   comidas: Comida[]
   lista_compra?: string[]
+  tdee?: number
+  metodo_calculo?: MetodoCalculo
+  razonamiento?: string
 }
 
 export type PlanEntrenamiento = {
   sesiones: Sesion[]
 }
+
+export type PlanEstado = "sin_generar" | "borrador" | "aprobado"
 
 export type Cliente = {
   id: number
@@ -34,6 +41,18 @@ export type Cliente = {
   objetivo: string | null
   restricciones: string | null
   tipo_plan: string | null
+  plan_estado: PlanEstado | null
+  preferencias_alimentarias: string | null
+  nivel_experiencia: string | null
+  equipamiento_disponible: string | null
+  historial_lesiones: string | null
+  edad: number | null
+  peso_kg: number | null
+  altura_cm: number | null
+  sexo_biologico: SexoBiologico | null
+  nivel_actividad: NivelActividad | null
+  metodo_calculo: MetodoCalculo | null
+  objetivo_calorico_manual: number | null
   guion: string | null
   video_id: string | null
   video_url: string | null

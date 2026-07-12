@@ -8,6 +8,8 @@ interface BotonesAudioProps {
   audioUrl: string | null
   linkCliente: string | null
   onAudioGenerado?: (audioUrl: string, linkToken: string) => void
+  bloqueado?: boolean
+  motivoBloqueo?: string
 }
 
 export default function BotonesAudio({
@@ -16,6 +18,8 @@ export default function BotonesAudio({
   audioUrl,
   linkCliente,
   onAudioGenerado,
+  bloqueado = false,
+  motivoBloqueo,
 }: BotonesAudioProps) {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
@@ -72,7 +76,7 @@ export default function BotonesAudio({
 
       <button
         onClick={generarAudio}
-        disabled={cargando}
+        disabled={cargando || bloqueado}
         className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 transition"
       >
         {cargando
@@ -81,6 +85,12 @@ export default function BotonesAudio({
           ? '🔄 Regenerar audio'
           : '🎙 Generar audio'}
       </button>
+
+      {bloqueado && (
+        <p className="text-xs text-amber-500">
+          {motivoBloqueo || 'Genera el guión primero.'}
+        </p>
+      )}
 
       {linkLocal && (
         <div className="flex items-center gap-2">

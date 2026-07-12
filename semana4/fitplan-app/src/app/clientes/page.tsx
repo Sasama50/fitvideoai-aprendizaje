@@ -6,11 +6,12 @@ import { createClient } from '@/lib/supabase/client'
 import GenerarGuionButton from '@/components/GenerarGuionButton'
 import GenerarVideoButton from '@/components/GenerarVideoButton'
 import FormularioPlan from '@/components/FormularioPlan'
+import GenerarPlanIAButton from '@/components/GenerarPlanIAButton'
 import BotonesAudio from '@/components/BotonesAudio'
 import BotonEnviarPlan from '@/components/BotonEnviarPlan'
 import BotonRecordatorio from '@/components/BotonRecordatorio'
 import TarjetaCliente, { necesitaRecordatorio } from '@/components/TarjetaCliente'
-import type { PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-types'
+import type { PlanNutricion, PlanEntrenamiento, PlanEstado } from '@/lib/supabase-types'
 
 type Cliente = {
   id: number
@@ -20,6 +21,10 @@ type Cliente = {
   objetivo: string | null
   restricciones: string | null
   tipo_plan: string | null
+  plan_estado: PlanEstado | null
+  plan_nutricion: PlanNutricion | null
+  plan_entrenamiento: PlanEntrenamiento | null
+  nota_profesional: string | null
   guion: string | null
   video_id: string | null
   video_url: string | null
@@ -36,6 +41,12 @@ const etiquetasPlan: Record<string, string> = {
   mantenimiento: 'Mantenimiento',
 }
 
+const etiquetasEstado: Record<PlanEstado, string> = {
+  sin_generar: 'sin generar',
+  borrador: 'borrador (pendiente de aprobar)',
+  aprobado: 'aprobado',
+}
+
 function formatearFecha(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', {
     day: 'numeric',
@@ -48,6 +59,13 @@ export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteEditando, setClienteEditando] = useState<number | null>(null)
   const [exitoId, setExitoId] = useState<number | null>(null)
+  const [planVersion, setPlanVersion] = useState<Record<number, number>>({})
+
+  const actualizarCliente = (clienteId: number, cambios: Partial<Cliente>) => {
+    setClientes((prev) =>
+      prev.map((c) => (c.id === clienteId ? { ...c, ...cambios } : c))
+    )
+  }
 
   useEffect(() => {
     const supabase = createClient()
@@ -66,19 +84,46 @@ export default function Clientes() {
       nota_profesional: string
     }
   ) => {
-    const supabase = createClient()
-    await supabase
-      .from('clientes')
-      .update({
-        plan_nutricion: data.plan_nutricion,
-        plan_entrenamiento: data.plan_entrenamiento,
-        nota_profesional: data.nota_profesional,
-      })
-      .eq('id', clienteId)
+    const clienteActual = clientes.find((c) => c.id === clienteId)
+    const estabaAprobado = clienteActual?.plan_estado === 'aprobado'
 
+    // Guardar mientras el plan está aprobado invalida el guión/audio/vídeo ya
+    // generados (pertenecen a la versión anterior) y devuelve el plan a
+    // "borrador": el profesional puede corregir errores reales aunque el plan
+    // ya se haya enviado, pero debe regenerar guión + audio antes de reenviar.
+    const cambios: Record<string, unknown> = {
+      plan_nutricion: data.plan_nutricion,
+      plan_entrenamiento: data.plan_entrenamiento,
+      nota_profesional: data.nota_profesional,
+      plan_estado: 'borrador',
+    }
+
+    if (estabaAprobado) {
+      cambios.guion = null
+      cambios.video_id = null
+      cambios.video_url = null
+      cambios.video_status = null
+      cambios.audio_status = null
+      cambios.audio_url = null
+    }
+
+    const supabase = createClient()
+    await supabase.from('clientes').update(cambios).eq('id', clienteId)
+
+    actualizarCliente(clienteId, cambios as Partial<Cliente>)
     setClienteEditando(null)
     setExitoId(clienteId)
     setTimeout(() => setExitoId(null), 2000)
+  }
+
+  const handleAprobar = async (clienteId: number) => {
+    const supabase = createClient()
+    await supabase
+      .from('clientes')
+      .update({ plan_estado: 'aprobado' })
+      .eq('id', clienteId)
+
+    actualizarCliente(clienteId, { plan_estado: 'aprobado' })
   }
 
   return (
@@ -142,6 +187,13 @@ export default function Clientes() {
                       >
                         Ver plan
                       </Link>
+                      <Link
+                        href={`/clientes/${cliente.id}/editar`}
+                        className="text-xs text-gray-400 hover:text-white transition"
+                        title="Editar perfil del cliente"
+                      >
+                        Editar perfil
+                      </Link>
                       <button
                         onClick={() =>
                           setClienteEditando(
@@ -169,11 +221,26 @@ export default function Clientes() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-4">
+                  <div className="flex items-center gap-2 mt-4 flex-wrap">
                     <p className="text-gray-500 text-xs">
                       {formatearFecha(cliente.created_at)}
                     </p>
                     <TarjetaCliente cliente={cliente} />
+                    <span
+                      className="text-xs font-medium px-3 py-1 rounded-full"
+                      style={{ backgroundColor: '#0f3460', color: '#facc15' }}
+                    >
+                      Plan: {etiquetasEstado[cliente.plan_estado ?? 'sin_generar']}
+                    </span>
+                    {(cliente.plan_estado ?? 'sin_generar') === 'borrador' && (
+                      <button
+                        onClick={() => handleAprobar(cliente.id)}
+                        className="text-xs font-semibold px-3 py-1 rounded-full transition"
+                        style={{ backgroundColor: '#16a34a', color: '#fff' }}
+                      >
+                        ✓ Aprobar plan
+                      </button>
+                    )}
                   </div>
 
                   {/* Mensaje de éxito */}
@@ -184,8 +251,12 @@ export default function Clientes() {
                   )}
 
                   <GenerarGuionButton
+                    key={`guion-${cliente.id}-${cliente.guion ? 'y' : 'n'}`}
                     clienteId={cliente.id}
                     guionInicial={cliente.guion ?? null}
+                    bloqueado={(cliente.plan_estado ?? 'sin_generar') !== 'aprobado'}
+                    motivoBloqueo="Aprueba el plan antes de generar el guión."
+                    onGuionGenerado={(guion) => actualizarCliente(cliente.id, { guion })}
                   />
                   {cliente.guion && (
                     <GenerarVideoButton
@@ -196,16 +267,37 @@ export default function Clientes() {
                     />
                   )}
                   <BotonesAudio
+                    key={`audio-${cliente.id}-${cliente.audio_status ?? 'n'}`}
                     clienteId={cliente.id}
                     audioStatus={cliente.audio_status}
                     audioUrl={cliente.audio_url}
                     linkCliente={cliente.link_cliente}
+                    bloqueado={(cliente.plan_estado ?? 'sin_generar') !== 'aprobado' || !cliente.guion}
+                    motivoBloqueo={
+                      (cliente.plan_estado ?? 'sin_generar') !== 'aprobado'
+                        ? 'Aprueba el plan antes de generar el audio.'
+                        : 'Genera el guión primero.'
+                    }
+                    onAudioGenerado={(audioUrl, linkToken) =>
+                      actualizarCliente(cliente.id, {
+                        audio_url: audioUrl,
+                        audio_status: 'completado',
+                        link_cliente: linkToken,
+                      })
+                    }
                   />
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <BotonEnviarPlan
                       clienteId={String(cliente.id)}
                       nombreCliente={cliente.nombre ?? 'cliente'}
                       email={cliente.email}
+                      yaEnviadoAntes={!!cliente.link_cliente}
+                      bloqueado={
+                        (cliente.plan_estado ?? 'sin_generar') !== 'aprobado' ||
+                        !cliente.guion ||
+                        cliente.audio_status !== 'completado'
+                      }
+                      motivoBloqueo="Aprueba el plan y regenera el guión y el audio antes de enviar."
                     />
                     {necesitaRecordatorio(cliente) && (
                       <BotonRecordatorio clienteId={String(cliente.id)} email={cliente.email} />
@@ -230,8 +322,25 @@ export default function Clientes() {
                         Cancelar
                       </button>
                     </div>
-                    <FormularioPlan
+
+                    <GenerarPlanIAButton
                       clienteId={cliente.id}
+                      planEstado={cliente.plan_estado ?? 'sin_generar'}
+                      onGenerado={(data) => {
+                        actualizarCliente(cliente.id, data)
+                        setPlanVersion((prev) => ({
+                          ...prev,
+                          [cliente.id]: (prev[cliente.id] ?? 0) + 1,
+                        }))
+                      }}
+                    />
+
+                    <FormularioPlan
+                      key={`${cliente.id}-${planVersion[cliente.id] ?? 0}`}
+                      clienteId={cliente.id}
+                      planNutricionInicial={cliente.plan_nutricion}
+                      planEntrenamientoInicial={cliente.plan_entrenamiento}
+                      notaProfesionalInicial={cliente.nota_profesional}
                       onGuardar={(data) => handleGuardar(cliente.id, data)}
                     />
                   </div>

@@ -3,8 +3,17 @@
 import { useState } from 'react'
 import type { PlanNutricion, PlanEntrenamiento, Comida, Ejercicio } from '@/lib/supabase-types'
 
+const NOMBRES_METODO: Record<string, string> = {
+  mifflin_st_jeor: 'Mifflin-St Jeor',
+  harris_benedict: 'Harris-Benedict',
+  manual: 'Manual',
+}
+
 type Props = {
   clienteId: number
+  planNutricionInicial?: PlanNutricion | null
+  planEntrenamientoInicial?: PlanEntrenamiento | null
+  notaProfesionalInicial?: string | null
   onGuardar: (data: {
     plan_nutricion: PlanNutricion
     plan_entrenamiento: PlanEntrenamiento
@@ -34,23 +43,33 @@ const sesionVacia = (nombre: string): { nombre: string; ejercicios: Ejercicio[] 
 type ComidaForm = Comida & { ingredientesTexto: string }
 type SesionForm = { nombre: string; ejercicios: Ejercicio[] }
 
-export default function FormularioPlan({ onGuardar }: Props) {
+export default function FormularioPlan({
+  planNutricionInicial,
+  planEntrenamientoInicial,
+  notaProfesionalInicial,
+  onGuardar,
+}: Props) {
   const [nutricionAbierta, setNutricionAbierta] = useState(true)
   const [entrenamientoAbierto, setEntrenamientoAbierto] = useState(false)
 
-  const [caloriasObjetivo, setCaloriasObjetivo] = useState<number | ''>('')
-  const [notaProfesional, setNotaProfesional] = useState('')
-  const [comidas, setComidas] = useState<ComidaForm[]>([
-    comidaVacia('Desayuno'),
-    comidaVacia('Comida'),
-    comidaVacia('Cena'),
-  ])
+  const [caloriasObjetivo, setCaloriasObjetivo] = useState<number | ''>(
+    planNutricionInicial?.calorias_objetivo ?? ''
+  )
+  const [notaProfesional, setNotaProfesional] = useState(notaProfesionalInicial ?? '')
+  const [comidas, setComidas] = useState<ComidaForm[]>(() =>
+    planNutricionInicial?.comidas?.length
+      ? planNutricionInicial.comidas.map((c) => ({
+          ...c,
+          ingredientesTexto: c.ingredientes.join('\n'),
+        }))
+      : [comidaVacia('Desayuno'), comidaVacia('Comida'), comidaVacia('Cena')]
+  )
 
-  const [sesiones, setSesiones] = useState<SesionForm[]>([
-    sesionVacia('Lunes'),
-    sesionVacia('Miércoles'),
-    sesionVacia('Viernes'),
-  ])
+  const [sesiones, setSesiones] = useState<SesionForm[]>(() =>
+    planEntrenamientoInicial?.sesiones?.length
+      ? planEntrenamientoInicial.sesiones
+      : [sesionVacia('Lunes'), sesionVacia('Miércoles'), sesionVacia('Viernes')]
+  )
 
   // --- Comidas ---
   const actualizarComida = (i: number, campo: string, valor: string | number) => {
@@ -167,6 +186,18 @@ export default function FormularioPlan({ onGuardar }: Props) {
 
         {nutricionAbierta && (
           <div className="bg-gray-50 px-4 pb-4 pt-2 space-y-4">
+            {/* TDEE y razonamiento del cálculo calórico (informativo, no editable) */}
+            {planNutricionInicial?.tdee != null && (
+              <div className="rounded-md bg-blue-50 border border-blue-100 px-3 py-2 text-sm text-blue-900">
+                TDEE estimado: {planNutricionInicial.tdee.toLocaleString('es-ES')} kcal
+                {planNutricionInicial.metodo_calculo && (
+                  <> ({NOMBRES_METODO[planNutricionInicial.metodo_calculo] ?? planNutricionInicial.metodo_calculo})</>
+                )}
+                {' '}→ Objetivo del plan: {(planNutricionInicial.calorias_objetivo ?? planNutricionInicial.tdee).toLocaleString('es-ES')} kcal
+                {planNutricionInicial.razonamiento && <> — {planNutricionInicial.razonamiento}</>}
+              </div>
+            )}
+
             {/* Calorías objetivo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
