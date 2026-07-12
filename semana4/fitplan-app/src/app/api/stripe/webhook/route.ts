@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     const sessionId = session.id;
     const email = session.customer_details?.email ?? session.customer_email;
     const plan = session.metadata?.plan === "studio" ? "studio" : "pro";
+    const heygenAddon = session.metadata?.heygen_addon === "true";
 
-    console.log("checkout.session.completed:", { sessionId, email, plan });
+    console.log("checkout.session.completed:", { sessionId, email, plan, heygenAddon });
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (email) {
       const { data: actualizados, error: updateError } = await supabase
         .from("profesionales")
-        .update({ plan })
+        .update({ plan, heygen_addon: heygenAddon })
         .eq("email", email)
         .select("id");
 
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
             const { error: upsertError } = await supabase
               .from("profesionales")
               .upsert(
-                { user_id: authUser.id, email, plan },
+                { user_id: authUser.id, email, plan, heygen_addon: heygenAddon },
                 { onConflict: "user_id" }
               );
 

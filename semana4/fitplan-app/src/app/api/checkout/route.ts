@@ -4,22 +4,26 @@ import { NextResponse } from "next/server";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const PLANES = {
-  pro: { nombre: "Plan Pro FitVideoAI", unitAmount: 6900 },
-  studio: { nombre: "Plan Studio FitVideoAI", unitAmount: 12900 },
+  pro: { nombre: "Plan Pro FitVideoAI", base: 6900, conHeygen: 10400 },
+  studio: { nombre: "Plan Studio FitVideoAI", base: 12900, conHeygen: 18800 },
 } as const;
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin") || "http://localhost:3001";
 
   let plan: keyof typeof PLANES = "pro";
+  let heygenAddon = false;
   try {
     const body = await request.json();
     if (body?.plan === "studio") plan = "studio";
+    if (body?.heygen_addon === true) heygenAddon = true;
   } catch {
-    // sin body -> plan por defecto 'pro'
+    // sin body -> plan por defecto 'pro' sin add-on
   }
 
-  const { nombre, unitAmount } = PLANES[plan];
+  const { nombre, base, conHeygen } = PLANES[plan];
+  const unitAmount = heygenAddon ? conHeygen : base;
+  const nombreProducto = heygenAddon ? `${nombre} + HeyGen` : nombre;
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -30,12 +34,12 @@ export async function POST(request: Request) {
           currency: "eur",
           unit_amount: unitAmount,
           product_data: {
-            name: nombre,
+            name: nombreProducto,
           },
         },
       },
     ],
-    metadata: { plan },
+    metadata: { plan, heygen_addon: heygenAddon ? "true" : "false" },
     success_url: `${origin}/success`,
     cancel_url: `${origin}`,
   });
