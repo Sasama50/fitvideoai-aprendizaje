@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const sessionId = session.id;
     const email = session.customer_details?.email ?? session.customer_email;
+    const plan = session.metadata?.plan === "studio" ? "studio" : "pro";
 
-    console.log("checkout.session.completed:", { sessionId, email });
+    console.log("checkout.session.completed:", { sessionId, email, plan });
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,9 +36,44 @@ export async function POST(req: NextRequest) {
     await supabase.from("pagos").insert({
       email,
       session_id: sessionId,
-      plan: "pro",
+      plan,
       activo: true,
     });
+
+    if (email) {
+      const { data: actualizados, error: updateError } = await supabase
+        .from("profesionales")
+        .update({ plan })
+        .eq("email", email)
+        .select("id");
+
+      if (updateError) {
+        console.error("Error al actualizar el plan del profesional:", updateError);
+      } else if (!actualizados || actualizados.length === 0) {
+        const { data: usersPage, error: listError } = await supabase.auth.admin.listUsers();
+
+        if (listError) {
+          console.error("Error al buscar el usuario por email:", listError);
+        } else {
+          const authUser = usersPage.users.find((u) => u.email === email);
+
+          if (authUser) {
+            const { error: upsertError } = await supabase
+              .from("profesionales")
+              .upsert(
+                { user_id: authUser.id, email, plan },
+                { onConflict: "user_id" }
+              );
+
+            if (upsertError) {
+              console.error("Error al crear el profesional con el plan pagado:", upsertError);
+            }
+          } else {
+            console.error("No se encontró profesional ni usuario para el email:", email);
+          }
+        }
+      }
+    }
   }
 
   return NextResponse.json({ received: true });

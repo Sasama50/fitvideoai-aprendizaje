@@ -25,6 +25,11 @@ export default function Home() {
   const [planConfirmado, setPlanConfirmado] = useState<FormData | null>(null);
   const [guardado, setGuardado] = useState(false);
   const [cargandoPago, setCargandoPago] = useState(false);
+  const [errorCliente, setErrorCliente] = useState("");
+  const [limiteAlcanzado, setLimiteAlcanzado] = useState<{
+    plan: string;
+    limite: number;
+  } | null>(null);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -33,19 +38,49 @@ export default function Home() {
     router.refresh();
   };
 
+  const handleCheckout = async (plan: "pro" | "studio") => {
+    setCargandoPago(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const { url } = await res.json();
+      window.location.href = url;
+    } finally {
+      setCargandoPago(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPlanConfirmado({ ...formData });
-    setGuardado(false);
+    setErrorCliente("");
+    setLimiteAlcanzado(null);
 
-    const supabase = createClient();
-    await supabase.from("clientes").insert({
-      nombre: formData.nombre,
-      objetivo: formData.objetivo,
-      restricciones: formData.restricciones,
-      tipo_plan: formData.tipoPlan,
+    const res = await fetch("/api/clientes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: formData.nombre,
+        objetivo: formData.objetivo,
+        restricciones: formData.restricciones,
+        tipo_plan: formData.tipoPlan,
+      }),
     });
 
+    const json = await res.json();
+
+    if (!res.ok) {
+      if (json.error === "limite_alcanzado") {
+        setLimiteAlcanzado({ plan: json.plan, limite: json.limite });
+      } else {
+        setErrorCliente(json.error || "No se pudo guardar el cliente.");
+      }
+      return;
+    }
+
+    setPlanConfirmado({ ...formData });
     setGuardado(true);
   };
 
@@ -186,6 +221,10 @@ export default function Home() {
               </select>
             </div>
 
+            {errorCliente && (
+              <p className="text-sm text-red-400">{errorCliente}</p>
+            )}
+
             {/* Botón */}
             <button
               type="submit"
@@ -200,23 +239,48 @@ export default function Home() {
         {/* Botón de suscripción */}
         <div className="mt-4">
           <button
-            onClick={async () => {
-              setCargandoPago(true);
-              try {
-                const res = await fetch("/api/checkout", { method: "POST" });
-                const { url } = await res.json();
-                window.location.href = url;
-              } finally {
-                setCargandoPago(false);
-              }
-            }}
+            onClick={() => handleCheckout("pro")}
             disabled={cargandoPago}
             className="w-full py-3 rounded-lg font-semibold text-white text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ backgroundColor: "#e94560" }}
           >
-            {cargandoPago ? "Redirigiendo…" : "Suscribirse — €49/mes"}
+            {cargandoPago ? "Redirigiendo…" : "Suscribirse a Pro — €69"}
           </button>
         </div>
+
+        {/* Modal de límite de plan alcanzado */}
+        {limiteAlcanzado && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+            <div
+              className="w-full max-w-sm rounded-2xl p-6 shadow-2xl"
+              style={{ backgroundColor: "#16213e" }}
+            >
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Límite de tu plan alcanzado
+              </h3>
+              <p className="text-gray-300 text-sm mb-6">
+                Has llegado al límite de tu plan ({limiteAlcanzado.limite}{" "}
+                clientes). Actualiza a Studio para seguir añadiendo clientes.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setLimiteAlcanzado(null)}
+                  className="flex-1 py-2.5 rounded-lg font-medium text-sm text-gray-300 border border-gray-600 hover:border-gray-400 transition"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={() => handleCheckout("studio")}
+                  disabled={cargandoPago}
+                  className="flex-1 py-2.5 rounded-lg font-semibold text-white text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: "#e94560" }}
+                >
+                  {cargandoPago ? "Redirigiendo…" : "Actualizar a Studio — €129"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Confirmación */}
         {planConfirmado && (
