@@ -91,7 +91,7 @@ export default function BotonesAudio({
           </code>
           <button
             onClick={copiarLink}
-            className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 transition whitespace-nowrap"
+            className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition whitespace-nowrap"
           >
             {linkCopiado ? '✅ Copiado' : '📋 Copiar'}
           </button>
