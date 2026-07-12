@@ -23,13 +23,17 @@ type PlanGenerado = {
 };
 
 function extraerJson(texto: string): PlanGenerado {
-  const limpio = texto
-    .trim()
-    .replace(/^```(?:json)?/i, "")
-    .replace(/```$/, "")
-    .trim();
+  const bloqueMarkdown = texto.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidato = bloqueMarkdown ? bloqueMarkdown[1] : texto;
 
-  const parsed = JSON.parse(limpio);
+  const inicio = candidato.indexOf("{");
+  const fin = candidato.lastIndexOf("}");
+
+  if (inicio === -1 || fin === -1 || fin < inicio) {
+    throw new Error("No se encontró un bloque JSON válido en la respuesta de la IA");
+  }
+
+  const parsed = JSON.parse(candidato.slice(inicio, fin + 1));
 
   if (
     typeof parsed.objetivo_calorico !== "number" ||
@@ -166,22 +170,23 @@ Devuelve el resultado como JSON con esta forma:
 No devuelvas texto fuera del JSON.
 `.trim();
 
-    const message = await anthropic.messages.create({
-      model: "claude-opus-4-7",
-      max_tokens: 2048,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const texto =
-      message.content[0].type === "text" ? message.content[0].text : "";
-
+    let texto = "";
     let plan: PlanGenerado;
     try {
+      const message = await anthropic.messages.create({
+        model: "claude-opus-4-7",
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      texto = message.content[0].type === "text" ? message.content[0].text : "";
       plan = extraerJson(texto);
-    } catch {
+    } catch (err) {
+      console.error("Error generando o parseando el plan con Claude en /api/generar-plan:", err);
+      console.error("Texto crudo de la respuesta de Claude:", texto);
       return NextResponse.json(
         { error: "La IA devolvió un formato inválido, inténtalo de nuevo" },
-        { status: 502 }
+        { status: 400 }
       );
     }
 
