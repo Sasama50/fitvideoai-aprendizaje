@@ -13,15 +13,33 @@ export type Sesion = {
   ejercicios: Ejercicio[]
 }
 
-export type Comida = {
+export type RestriccionDieta = 'vegetariano' | 'vegano' | 'sin_gluten' | 'sin_lactosa'
+
+export type AlternativaComida = {
   nombre: string
   ingredientes: string[]
+  calorias: number
+}
+
+export type Comida = {
+  tipo_comida?: string
+  nombre: string
+  ingredientes: string[]
+  calorias?: number
+  /** @deprecated usar `calorias`; se mantiene para leer planes guardados antes de la selección determinista */
   calorias_aprox?: number
+  proteinas_g?: number | null
+  carbohidratos_g?: number | null
+  grasas_g?: number | null
+  ajuste_calorico_amplio?: boolean
+  alternativas?: AlternativaComida[]
 }
 
 export type PlanNutricion = {
   calorias_objetivo?: number
   comidas: Comida[]
+  suma_calorias_real?: number
+  diferencia_kcal?: number
   lista_compra?: string[]
   tdee?: number
   metodo_calculo?: MetodoCalculo
@@ -43,6 +61,7 @@ export type Cliente = {
   tipo_plan: string | null
   plan_estado: PlanEstado | null
   preferencias_alimentarias: string | null
+  restricciones_dieta: RestriccionDieta[]
   nivel_experiencia: string | null
   equipamiento_disponible: string | null
   historial_lesiones: string | null

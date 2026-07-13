@@ -6,6 +6,7 @@ import type {
   NivelActividad as NivelActividadDB,
   MetodoCalculo,
 } from "@/lib/tdee";
+import type { RestriccionDieta } from "@/lib/supabase-types";
 
 export type TipoPlan = "perdida-peso" | "ganancia-muscular" | "mantenimiento" | "";
 export type NivelExperiencia = "principiante" | "intermedio" | "avanzado" | "";
@@ -17,6 +18,7 @@ export type ClienteIntakeValues = {
   nombre: string;
   objetivo: string;
   restricciones: string;
+  restriccionesDieta: RestriccionDieta[];
   tipoPlan: TipoPlan;
   preferenciasAlimentarias: string;
   nivelExperiencia: NivelExperiencia;
@@ -31,10 +33,18 @@ export type ClienteIntakeValues = {
   objetivoCaloricoManual: string;
 };
 
+const OPCIONES_RESTRICCION_DIETA: { value: RestriccionDieta; label: string }[] = [
+  { value: "vegetariano", label: "Vegetariano" },
+  { value: "vegano", label: "Vegano" },
+  { value: "sin_gluten", label: "Sin gluten" },
+  { value: "sin_lactosa", label: "Sin lactosa" },
+];
+
 const VALORES_VACIOS: ClienteIntakeValues = {
   nombre: "",
   objetivo: "",
   restricciones: "",
+  restriccionesDieta: [],
   tipoPlan: "",
   preferenciasAlimentarias: "",
   nivelExperiencia: "",
@@ -81,6 +91,15 @@ export default function FormularioIntakeCliente({
   ) => {
     const { name, value } = e.target;
     setValores((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const toggleRestriccionDieta = (valor: RestriccionDieta) => {
+    setValores((prev) => ({
+      ...prev,
+      restriccionesDieta: prev.restriccionesDieta.includes(valor)
+        ? prev.restriccionesDieta.filter((v) => v !== valor)
+        : [...prev.restriccionesDieta, valor],
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,6 +160,30 @@ export default function FormularioIntakeCliente({
           className={inputClass}
           style={inputStyle}
         />
+      </div>
+
+      {/* Restricciones dietéticas (para la selección de comidas del catálogo) */}
+      <div>
+        <label className={labelClass}>Restricciones dietéticas</label>
+        <div className="flex flex-wrap gap-3">
+          {OPCIONES_RESTRICCION_DIETA.map((opcion) => (
+            <label
+              key={opcion.value}
+              className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={valores.restriccionesDieta.includes(opcion.value)}
+                onChange={() => toggleRestriccionDieta(opcion.value)}
+              />
+              {opcion.label}
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          Se usan para filtrar las comidas del plan nutricional. Ninguna comida seleccionada
+          incumplirá estas restricciones.
+        </p>
       </div>
 
       {/* Preferencias alimentarias */}

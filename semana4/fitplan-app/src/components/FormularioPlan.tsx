@@ -24,7 +24,7 @@ type Props = {
 const comidaVacia = (nombre: string): Comida & { ingredientesTexto: string } => ({
   nombre,
   ingredientes: [],
-  calorias_aprox: undefined,
+  calorias: undefined,
   ingredientesTexto: '',
 })
 
@@ -60,6 +60,7 @@ export default function FormularioPlan({
     planNutricionInicial?.comidas?.length
       ? planNutricionInicial.comidas.map((c) => ({
           ...c,
+          calorias: c.calorias ?? c.calorias_aprox,
           ingredientesTexto: c.ingredientes.join('\n'),
         }))
       : [comidaVacia('Desayuno'), comidaVacia('Comida'), comidaVacia('Cena')]
@@ -242,11 +243,11 @@ export default function FormularioPlan({
                     />
                     <input
                       type="number"
-                      value={comida.calorias_aprox ?? ''}
+                      value={comida.calorias ?? ''}
                       onChange={e =>
                         actualizarComida(
                           i,
-                          'calorias_aprox',
+                          'calorias',
                           e.target.value === '' ? '' : Number(e.target.value)
                         )
                       }
@@ -268,6 +269,19 @@ export default function FormularioPlan({
                     placeholder={'Ingredientes (uno por línea)\nej: 2 huevos\n1 tostada integral'}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-900 placeholder-gray-400"
                   />
+                  {comida.ajuste_calorico_amplio && (
+                    <p className="text-xs text-amber-600">
+                      ⚠ El catálogo no tiene una comida cercana al objetivo calórico de esta franja para las restricciones dietéticas del cliente.
+                    </p>
+                  )}
+                  {comida.alternativas && comida.alternativas.length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      <span className="font-medium text-gray-600">Alternativas:</span>{' '}
+                      {comida.alternativas
+                        .map(alt => `${alt.nombre} (${alt.calorias} kcal)`)
+                        .join(' · ')}
+                    </p>
+                  )}
                 </div>
               ))}
 

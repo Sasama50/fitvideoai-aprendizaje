@@ -96,9 +96,9 @@ export default async function PlanPage({ params }: Props) {
                         <h4 className="text-white font-semibold text-sm">
                           {comida.nombre}
                         </h4>
-                        {comida.calorias_aprox && (
+                        {(comida.calorias ?? comida.calorias_aprox) && (
                           <span className="text-xs text-indigo-300">
-                            {comida.calorias_aprox} kcal
+                            {comida.calorias ?? comida.calorias_aprox} kcal
                           </span>
                         )}
                       </div>
@@ -111,6 +111,14 @@ export default async function PlanPage({ params }: Props) {
                             </li>
                           ))}
                         </ul>
+                      )}
+                      {comida.alternativas && comida.alternativas.length > 0 && (
+                        <p className="text-xs text-gray-400 mt-2">
+                          <span className="font-medium text-gray-300">Alternativas:</span>{' '}
+                          {comida.alternativas
+                            .map((alt) => `${alt.nombre} (${alt.calorias} kcal)`)
+                            .join(' · ')}
+                        </p>
                       )}
                     </div>
                   ))}

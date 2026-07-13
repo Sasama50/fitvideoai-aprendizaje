@@ -2,8 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import type { Comida, Sesion } from "@/lib/supabase-types";
+import type { Sesion } from "@/lib/supabase-types";
 import { calcularTDEE, type MetodoCalculo } from "@/lib/tdee";
+import { seleccionarComidas } from "@/lib/seleccion-comidas";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -18,7 +19,6 @@ const NOMBRES_METODO: Record<MetodoCalculo, string> = {
 type PlanGenerado = {
   objetivo_calorico: number;
   razonamiento: string;
-  comidas: Comida[];
   entrenamientos: Sesion[];
 };
 
@@ -38,7 +38,6 @@ function extraerJson(texto: string): PlanGenerado {
   if (
     typeof parsed.objetivo_calorico !== "number" ||
     typeof parsed.razonamiento !== "string" ||
-    !Array.isArray(parsed.comidas) ||
     !Array.isArray(parsed.entrenamientos)
   ) {
     throw new Error("Formato de plan inesperado devuelto por la IA");
@@ -85,7 +84,7 @@ export async function POST(req: NextRequest) {
     const { data: cliente, error: clienteError } = await supabase
       .from("clientes")
       .select(
-        "id, nombre, objetivo, restricciones, preferencias_alimentarias, nivel_experiencia, equipamiento_disponible, historial_lesiones, profesional_id, edad, peso_kg, altura_cm, sexo_biologico, nivel_actividad, metodo_calculo, objetivo_calorico_manual"
+        "id, nombre, objetivo, restricciones, restricciones_dieta, preferencias_alimentarias, nivel_experiencia, equipamiento_disponible, historial_lesiones, profesional_id, edad, peso_kg, altura_cm, sexo_biologico, nivel_actividad, metodo_calculo, objetivo_calorico_manual"
       )
       .eq("id", client_id)
       .eq("profesional_id", profesional.id)
@@ -156,15 +155,15 @@ y explica en una frase corta el porqué (ej. "déficit del 20% para pérdida de 
 
 Genera:
 - El objetivo calórico final y la frase de razonamiento
-- 4-5 comidas clave de la semana (nombre, ingredientes principales, calorías estimadas, coherentes con el objetivo calórico final)
 - 3-4 sesiones de entrenamiento (nombre/día, ejercicios con series×reps y descanso), adaptadas al nivel y equipamiento
   del cliente y evitando cualquier ejercicio contraindicado por su historial de lesiones
+
+No generes comidas: las comidas del plan nutricional se seleccionan por otro sistema.
 
 Devuelve el resultado como JSON con esta forma:
 {
   "objetivo_calorico": number,
   "razonamiento": string,
-  "comidas": [{ "nombre": string, "ingredientes": string[], "calorias_aprox": number }],
   "entrenamientos": [{ "nombre": string, "ejercicios": [{ "nombre": string, "series": number, "reps": string, "descanso": string }] }]
 }
 No devuelvas texto fuera del JSON.
@@ -190,9 +189,17 @@ No devuelvas texto fuera del JSON.
       );
     }
 
+    const { comidas, suma_calorias_real, diferencia_kcal } = await seleccionarComidas(
+      supabase,
+      plan.objetivo_calorico,
+      cliente.restricciones_dieta || []
+    );
+
     const plan_nutricion = {
       calorias_objetivo: plan.objetivo_calorico,
-      comidas: plan.comidas,
+      comidas,
+      suma_calorias_real,
+      diferencia_kcal,
       tdee,
       metodo_calculo: metodo,
       razonamiento: plan.razonamiento,

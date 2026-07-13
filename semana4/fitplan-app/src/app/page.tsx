@@ -63,6 +63,7 @@ export default function Home() {
         nombre: valores.nombre,
         objetivo: valores.objetivo,
         restricciones: valores.restricciones,
+        restricciones_dieta: valores.restriccionesDieta,
         tipo_plan: valores.tipoPlan,
         preferencias_alimentarias: valores.preferenciasAlimentarias,
         nivel_experiencia: valores.nivelExperiencia,
