@@ -4,6 +4,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL!
 
 const supabase = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
       : 'Tu plan de esta semana ya está listo, con audio personalizado incluido.'
 
     const { data, error } = await resend.emails.send({
-      from: 'FitVideoAI <onboarding@resend.dev>',
+      from: FROM_EMAIL,
       to: cliente.email,
       subject: asunto,
       html: `

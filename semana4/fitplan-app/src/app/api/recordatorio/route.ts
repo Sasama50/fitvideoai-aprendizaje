@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL!
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const url = `${process.env.NEXT_PUBLIC_APP_URL}/plan/${cliente.link_cliente}`
 
     const { data, error } = await resend.emails.send({
-      from: 'FitVideoAI <onboarding@resend.dev>',
+      from: FROM_EMAIL,
       to: emailDestino,
       subject: `¿Ya viste tu plan de esta semana?`,
       html: `
