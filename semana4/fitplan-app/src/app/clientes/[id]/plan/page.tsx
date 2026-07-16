@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Cliente, PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-types'
+import { youtubeSearchUrl } from '@/lib/youtube'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -162,20 +163,14 @@ export default async function PlanPage({ params }: Props) {
                             className="flex items-start justify-between gap-4 py-2 border-t border-white/10 first:border-t-0 first:pt-0"
                           >
                             <div className="flex-1 min-w-0">
-                              {ej.url_youtube ? (
-                                <a
-                                  href={ej.url_youtube}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-indigo-300 hover:text-indigo-200 text-sm font-medium underline underline-offset-2"
-                                >
-                                  {ej.nombre}
-                                </a>
-                              ) : (
-                                <span className="text-gray-200 text-sm font-medium">
-                                  {ej.nombre}
-                                </span>
-                              )}
+                              <a
+                                href={youtubeSearchUrl(ej.nombre)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-300 hover:text-indigo-200 text-sm font-medium underline underline-offset-2"
+                              >
+                                {ej.nombre}
+                              </a>
                             </div>
                             <div className="flex items-center gap-3 text-xs text-gray-400 shrink-0">
                               <span>{ej.series} series</span>

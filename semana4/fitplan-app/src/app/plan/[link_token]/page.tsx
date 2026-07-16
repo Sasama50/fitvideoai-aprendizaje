@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import AudioPlayer from '@/components/AudioPlayer'
 import BotonDescarga from '@/components/BotonDescarga'
+import { youtubeSearchUrl } from '@/lib/youtube'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -156,7 +157,7 @@ export default async function PlanCliente({ params }: Props) {
                           </p>
                         </div>
                         <a
-                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ejercicio.nombre + ' ejercicio técnica')}`}
+                          href={youtubeSearchUrl(ejercicio.nombre)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs font-semibold px-2 py-1 rounded-lg shrink-0"

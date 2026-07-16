@@ -5,7 +5,6 @@ export type Ejercicio = {
   series: number
   reps: string
   descanso?: string
-  url_youtube?: string
 }
 
 export type Sesion = {
