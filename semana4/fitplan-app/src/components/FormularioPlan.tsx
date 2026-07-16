@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { PlanNutricion, PlanEntrenamiento, Comida, Ejercicio } from '@/lib/supabase-types'
+import { youtubeSearchUrl } from '@/lib/youtube'
 
 const NOMBRES_METODO: Record<string, string> = {
   mifflin_st_jeor: 'Mifflin-St Jeor',
@@ -349,6 +350,16 @@ export default function FormularioPlan({
                         placeholder="Ejercicio"
                         className="flex-1 min-w-32 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
                       />
+                      {ej.nombre && (
+                        <a
+                          href={youtubeSearchUrl(ej.nombre)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2 shrink-0"
+                        >
+                          Ver cómo se hace ▶
+                        </a>
+                      )}
                       <input
                         type="number"
                         value={ej.series}
