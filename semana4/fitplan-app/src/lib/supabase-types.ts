@@ -56,6 +56,7 @@ export type Cliente = {
   id: number
   created_at: string
   nombre: string | null
+  email: string | null
   objetivo: string | null
   restricciones: string | null
   tipo_plan: string | null

@@ -16,6 +16,7 @@ export type { MetodoCalculo };
 
 export type ClienteIntakeValues = {
   nombre: string;
+  email: string;
   objetivo: string;
   restricciones: string;
   restriccionesDieta: RestriccionDieta[];
@@ -42,6 +43,7 @@ const OPCIONES_RESTRICCION_DIETA: { value: RestriccionDieta; label: string }[] =
 
 const VALORES_VACIOS: ClienteIntakeValues = {
   nombre: "",
+  email: "",
   objetivo: "",
   restricciones: "",
   restriccionesDieta: [],
@@ -125,6 +127,26 @@ export default function FormularioIntakeCliente({
           className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition"
           style={inputStyle}
         />
+      </div>
+
+      {/* Email */}
+      <div>
+        <label htmlFor="email" className={labelClass}>
+          Email del cliente
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="Ej: maria@ejemplo.com"
+          value={valores.email}
+          onChange={handleChange}
+          className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-500 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          style={inputStyle}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Necesario para poder enviarle el plan por email.
+        </p>
       </div>
 
       {/* Objetivo */}

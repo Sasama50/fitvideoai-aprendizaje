@@ -61,6 +61,7 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nombre: valores.nombre,
+        email: valores.email || null,
         objetivo: valores.objetivo,
         restricciones: valores.restricciones,
         restricciones_dieta: valores.restriccionesDieta,

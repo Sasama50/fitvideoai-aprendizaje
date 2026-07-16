@@ -10,6 +10,7 @@ export async function PATCH(
     const { id } = await params;
     const {
       nombre,
+      email,
       objetivo,
       restricciones,
       restricciones_dieta,
@@ -58,6 +59,7 @@ export async function PATCH(
       .from("clientes")
       .update({
         nombre,
+        email,
         objetivo,
         restricciones,
         restricciones_dieta,

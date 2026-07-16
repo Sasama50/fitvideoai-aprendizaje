@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const {
       nombre,
+      email,
       objetivo,
       restricciones,
       restricciones_dieta,
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
       .from("clientes")
       .insert({
         nombre,
+        email,
         objetivo,
         restricciones,
         restricciones_dieta,

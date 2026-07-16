@@ -18,6 +18,7 @@ export default function EditarClienteForm({ cliente }: { cliente: Cliente }) {
 
   const valoresIniciales: Partial<ClienteIntakeValues> = {
     nombre: cliente.nombre ?? "",
+    email: cliente.email ?? "",
     objetivo: cliente.objetivo ?? "",
     restricciones: cliente.restricciones ?? "",
     restriccionesDieta: cliente.restricciones_dieta ?? [],
@@ -45,6 +46,7 @@ export default function EditarClienteForm({ cliente }: { cliente: Cliente }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: valores.nombre,
+          email: valores.email || null,
           objetivo: valores.objetivo,
           restricciones: valores.restricciones,
           restricciones_dieta: valores.restriccionesDieta,
