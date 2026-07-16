@@ -23,7 +23,6 @@ interface Ejercicio {
   series: number
   reps: string
   descanso: string
-  url_youtube?: string
 }
 
 interface Sesion {
@@ -156,17 +155,15 @@ export default async function PlanCliente({ params }: Props) {
                             {ejercicio.descanso && ` · ${ejercicio.descanso} descanso`}
                           </p>
                         </div>
-                        {ejercicio.url_youtube && (
-                          <a
-                            href={ejercicio.url_youtube}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-semibold px-2 py-1 rounded-lg"
-                            style={{ color: colorPrincipal, backgroundColor: '#fff0ee' }}
-                          >
-                            ver ▶
-                          </a>
-                        )}
+                        <a
+                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ejercicio.nombre + ' ejercicio técnica')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-semibold px-2 py-1 rounded-lg shrink-0"
+                          style={{ color: colorPrincipal, backgroundColor: '#fff0ee' }}
+                        >
+                          Ver cómo se hace ▶
+                        </a>
                       </div>
                     ))}
                   </div>
