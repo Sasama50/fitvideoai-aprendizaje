@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Cliente, PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-types'
 import { youtubeSearchUrl } from '@/lib/youtube'
+import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -86,41 +87,55 @@ export default async function PlanPage({ params }: Props) {
                   </p>
                 )}
 
-                <div className="space-y-4">
-                  {nutricion.comidas.map((comida, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl p-4"
-                      style={{ backgroundColor: '#0f3460' }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-white font-semibold text-sm">
-                          {comida.nombre}
-                        </h4>
-                        {(comida.calorias ?? comida.calorias_aprox) && (
-                          <span className="text-xs text-indigo-300">
-                            {comida.calorias ?? comida.calorias_aprox} kcal
-                          </span>
-                        )}
+                <div className="space-y-5">
+                  {agruparPorTipoComida(nutricion.comidas).map((grupo) => (
+                    <div key={grupo.tipo ?? 'otras'}>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-300 mb-2">
+                        {grupo.etiqueta}
+                      </p>
+                      <div className="space-y-3">
+                        {grupo.items.map((comida, i) => (
+                          <div
+                            key={i}
+                            className="rounded-xl p-4"
+                            style={{ backgroundColor: '#0f3460' }}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-white font-semibold text-sm">
+                                {comida.nombre}
+                              </h4>
+                              {(comida.calorias ?? comida.calorias_aprox) && (
+                                <span className="text-xs text-indigo-300">
+                                  {comida.calorias ?? comida.calorias_aprox} kcal
+                                </span>
+                              )}
+                            </div>
+                            {comida.ingredientes.length > 0 && (
+                              <ul className="space-y-1">
+                                {comida.ingredientes.map((ing, j) => (
+                                  <li key={j} className="text-gray-300 text-sm flex items-start gap-2">
+                                    <span className="text-indigo-400 mt-0.5 shrink-0">•</span>
+                                    {ing}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {comida.preparacion && (
+                              <p className="text-gray-400 text-xs mt-2 leading-relaxed">
+                                {comida.preparacion}
+                              </p>
+                            )}
+                            {comida.alternativas && comida.alternativas.length > 0 && (
+                              <p className="text-xs text-gray-400 mt-2">
+                                <span className="font-medium text-gray-300">Alternativas:</span>{' '}
+                                {comida.alternativas
+                                  .map((alt) => `${alt.nombre} (${alt.calorias} kcal)`)
+                                  .join(' · ')}
+                              </p>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                      {comida.ingredientes.length > 0 && (
-                        <ul className="space-y-1">
-                          {comida.ingredientes.map((ing, j) => (
-                            <li key={j} className="text-gray-300 text-sm flex items-start gap-2">
-                              <span className="text-indigo-400 mt-0.5 shrink-0">•</span>
-                              {ing}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {comida.alternativas && comida.alternativas.length > 0 && (
-                        <p className="text-xs text-gray-400 mt-2">
-                          <span className="font-medium text-gray-300">Alternativas:</span>{' '}
-                          {comida.alternativas
-                            .map((alt) => `${alt.nombre} (${alt.calorias} kcal)`)
-                            .join(' · ')}
-                        </p>
-                      )}
                     </div>
                   ))}
                 </div>

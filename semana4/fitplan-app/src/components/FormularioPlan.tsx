@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { PlanNutricion, PlanEntrenamiento, Comida, Ejercicio } from '@/lib/supabase-types'
 import { youtubeSearchUrl } from '@/lib/youtube'
+import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
 
 const NOMBRES_METODO: Record<string, string> = {
   mifflin_st_jeor: 'Mifflin-St Jeor',
@@ -232,57 +233,74 @@ export default function FormularioPlan({
             <div className="space-y-3">
               <p className="text-sm font-medium text-gray-700">Comidas</p>
 
-              {comidas.map((comida, i) => (
-                <div key={i} className="border border-gray-200 rounded-md bg-white p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <input
-                      type="text"
-                      value={comida.nombre}
-                      onChange={e => actualizarComida(i, 'nombre', e.target.value)}
-                      placeholder="Nombre (ej: Desayuno)"
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
-                    />
-                    <input
-                      type="number"
-                      value={comida.calorias ?? ''}
-                      onChange={e =>
-                        actualizarComida(
-                          i,
-                          'calorias',
-                          e.target.value === '' ? '' : Number(e.target.value)
-                        )
-                      }
-                      placeholder="kcal"
-                      className="w-24 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => eliminarComida(i)}
-                      className="text-red-400 hover:text-red-600 text-sm font-medium shrink-0"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                  <textarea
-                    rows={3}
-                    value={comida.ingredientesTexto}
-                    onChange={e => actualizarComida(i, 'ingredientesTexto', e.target.value)}
-                    placeholder={'Ingredientes (uno por línea)\nej: 2 huevos\n1 tostada integral'}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-900 placeholder-gray-400"
-                  />
-                  {comida.ajuste_calorico_amplio && (
-                    <p className="text-xs text-amber-600">
-                      ⚠ El catálogo no tiene una comida cercana al objetivo calórico de esta franja para las restricciones dietéticas del cliente.
-                    </p>
-                  )}
-                  {comida.alternativas && comida.alternativas.length > 0 && (
-                    <p className="text-xs text-gray-500">
-                      <span className="font-medium text-gray-600">Alternativas:</span>{' '}
-                      {comida.alternativas
-                        .map(alt => `${alt.nombre} (${alt.calorias} kcal)`)
-                        .join(' · ')}
-                    </p>
-                  )}
+              {agruparPorTipoComida(
+                comidas.map((comida, i) => ({ ...comida, _idx: i }))
+              ).map(grupo => (
+                <div key={grupo.tipo ?? 'otras'} className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {grupo.etiqueta}
+                  </p>
+                  {grupo.items.map(comida => {
+                    const i = comida._idx
+                    return (
+                      <div key={i} className="border border-gray-200 rounded-md bg-white p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <input
+                            type="text"
+                            value={comida.nombre}
+                            onChange={e => actualizarComida(i, 'nombre', e.target.value)}
+                            placeholder="Nombre (ej: Desayuno)"
+                            className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
+                          />
+                          <input
+                            type="number"
+                            value={comida.calorias ?? ''}
+                            onChange={e =>
+                              actualizarComida(
+                                i,
+                                'calorias',
+                                e.target.value === '' ? '' : Number(e.target.value)
+                              )
+                            }
+                            placeholder="kcal"
+                            className="w-24 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => eliminarComida(i)}
+                            className="text-red-400 hover:text-red-600 text-sm font-medium shrink-0"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={comida.ingredientesTexto}
+                          onChange={e => actualizarComida(i, 'ingredientesTexto', e.target.value)}
+                          placeholder={'Ingredientes (uno por línea)\nej: 2 huevos\n1 tostada integral'}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-900 placeholder-gray-400"
+                        />
+                        {comida.preparacion && (
+                          <p className="text-xs text-gray-500 leading-relaxed">
+                            {comida.preparacion}
+                          </p>
+                        )}
+                        {comida.ajuste_calorico_amplio && (
+                          <p className="text-xs text-amber-600">
+                            ⚠ El catálogo no tiene una comida cercana al objetivo calórico de esta franja para las restricciones dietéticas del cliente.
+                          </p>
+                        )}
+                        {comida.alternativas && comida.alternativas.length > 0 && (
+                          <p className="text-xs text-gray-500">
+                            <span className="font-medium text-gray-600">Alternativas:</span>{' '}
+                            {comida.alternativas
+                              .map(alt => `${alt.nombre} (${alt.calorias} kcal)`)
+                              .join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               ))}
 

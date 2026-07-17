@@ -18,6 +18,7 @@ export type AlternativaComida = {
   nombre: string
   ingredientes: string[]
   calorias: number
+  preparacion?: string
 }
 
 export type Comida = {
@@ -30,6 +31,7 @@ export type Comida = {
   proteinas_g?: number | null
   carbohidratos_g?: number | null
   grasas_g?: number | null
+  preparacion?: string
   ajuste_calorico_amplio?: boolean
   alternativas?: AlternativaComida[]
 }

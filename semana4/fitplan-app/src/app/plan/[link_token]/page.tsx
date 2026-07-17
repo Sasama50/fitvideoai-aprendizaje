@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import AudioPlayer from '@/components/AudioPlayer'
 import BotonDescarga from '@/components/BotonDescarga'
 import { youtubeSearchUrl } from '@/lib/youtube'
+import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,9 +15,11 @@ interface Props {
 }
 
 interface Comida {
+  tipo_comida?: string
   nombre: string
   ingredientes: string[]
   calorias?: number
+  preparacion?: string
 }
 
 interface Ejercicio {
@@ -101,22 +104,36 @@ export default async function PlanCliente({ params }: Props) {
               </p>
             )}
 
-            <div className="space-y-3">
-              {planNutricion.comidas?.map((comida, i) => (
-                <div
-                  key={i}
-                  className="border-l-4 pl-4 py-1"
-                  style={{ borderColor: colorPrincipal }}
-                >
-                  <p className="font-semibold text-gray-800 text-sm">{comida.nombre}</p>
-                  {comida.calorias && (
-                    <p className="text-xs text-gray-400">{comida.calorias} kcal</p>
-                  )}
-                  {comida.ingredientes?.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {comida.ingredientes.join(' · ')}
-                    </p>
-                  )}
+            <div className="space-y-4">
+              {agruparPorTipoComida(planNutricion.comidas ?? []).map((grupo) => (
+                <div key={grupo.tipo ?? 'otras'}>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                    {grupo.etiqueta}
+                  </p>
+                  <div className="space-y-3">
+                    {grupo.items.map((comida, i) => (
+                      <div
+                        key={i}
+                        className="border-l-4 pl-4 py-1"
+                        style={{ borderColor: colorPrincipal }}
+                      >
+                        <p className="font-semibold text-gray-800 text-sm">{comida.nombre}</p>
+                        {comida.calorias && (
+                          <p className="text-xs text-gray-400">{comida.calorias} kcal</p>
+                        )}
+                        {comida.ingredientes?.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {comida.ingredientes.join(' · ')}
+                          </p>
+                        )}
+                        {comida.preparacion && (
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            {comida.preparacion}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

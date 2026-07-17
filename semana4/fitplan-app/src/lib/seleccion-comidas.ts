@@ -10,6 +10,40 @@ export const ORDEN_FRANJAS = [
 
 export type TipoComida = (typeof ORDEN_FRANJAS)[number];
 
+export const ETIQUETAS_TIPO_COMIDA: Record<TipoComida, string> = {
+  desayuno: "Desayuno",
+  almuerzo: "Almuerzo",
+  comida_principal: "Comida principal",
+  snack: "Snack",
+  cena: "Cena",
+};
+
+function esTipoComidaConocido(tipo: string | null | undefined): tipo is TipoComida {
+  return !!tipo && (ORDEN_FRANJAS as readonly string[]).includes(tipo);
+}
+
+/**
+ * Agrupa comidas por franja en el orden fijo desayuno → almuerzo → comida_principal
+ * → snack → cena. Las comidas sin tipo_comida reconocido (planes manuales o
+ * guardados antes de que existiera el campo) caen en un grupo final "Otras comidas".
+ */
+export function agruparPorTipoComida<T extends { tipo_comida?: string | null }>(
+  items: T[]
+): { tipo: TipoComida | null; etiqueta: string; items: T[] }[] {
+  const grupos = ORDEN_FRANJAS.map((tipo) => ({
+    tipo: tipo as TipoComida | null,
+    etiqueta: ETIQUETAS_TIPO_COMIDA[tipo],
+    items: items.filter((item) => item.tipo_comida === tipo),
+  })).filter((grupo) => grupo.items.length > 0);
+
+  const otras = items.filter((item) => !esTipoComidaConocido(item.tipo_comida));
+  if (otras.length > 0) {
+    grupos.push({ tipo: null, etiqueta: "Otras comidas", items: otras });
+  }
+
+  return grupos;
+}
+
 const REPARTO_CALORICO: Record<TipoComida, number> = {
   desayuno: 0.2,
   almuerzo: 0.25,
@@ -27,12 +61,14 @@ type ComidaCatalogo = {
   carbohidratos_g: number | null;
   grasas_g: number | null;
   tags_dieta: string[];
+  preparacion: string;
 };
 
 export type AlternativaComida = {
   nombre: string;
   ingredientes: string[];
   calorias: number;
+  preparacion: string;
 };
 
 export type ComidaSeleccionada = {
@@ -43,6 +79,7 @@ export type ComidaSeleccionada = {
   proteinas_g: number | null;
   carbohidratos_g: number | null;
   grasas_g: number | null;
+  preparacion: string;
   ajuste_calorico_amplio?: boolean;
   alternativas: AlternativaComida[];
 };
@@ -67,7 +104,7 @@ export async function seleccionarComidas(
     let query = supabase
       .from("comidas")
       .select(
-        "tipo_comida, nombre, ingredientes, calorias, proteinas_g, carbohidratos_g, grasas_g, tags_dieta"
+        "tipo_comida, nombre, ingredientes, calorias, proteinas_g, carbohidratos_g, grasas_g, tags_dieta, preparacion"
       )
       .eq("tipo_comida", tipoComida)
       .eq("activo", true);
@@ -118,6 +155,7 @@ export async function seleccionarComidas(
       nombre: c.nombre,
       ingredientes: c.ingredientes,
       calorias: c.calorias,
+      preparacion: c.preparacion,
     }));
 
     const ajusteCaloricoAmplio = mejorDiferencia > objetivoFranja * 0.2;
@@ -130,6 +168,7 @@ export async function seleccionarComidas(
       proteinas_g: elegida.proteinas_g,
       carbohidratos_g: elegida.carbohidratos_g,
       grasas_g: elegida.grasas_g,
+      preparacion: elegida.preparacion,
       ...(ajusteCaloricoAmplio ? { ajuste_calorico_amplio: true } : {}),
       alternativas,
     });
