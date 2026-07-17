@@ -65,6 +65,7 @@ export default function Home() {
         objetivo: valores.objetivo,
         restricciones: valores.restricciones,
         restricciones_dieta: valores.restriccionesDieta,
+        ingredientes_no_deseados: valores.ingredientesNoDeseados,
         tipo_plan: valores.tipoPlan,
         preferencias_alimentarias: valores.preferenciasAlimentarias,
         nivel_experiencia: valores.nivelExperiencia,

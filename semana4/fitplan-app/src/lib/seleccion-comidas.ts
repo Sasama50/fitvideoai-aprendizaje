@@ -22,6 +22,27 @@ function esTipoComidaConocido(tipo: string | null | undefined): tipo is TipoComi
   return !!tipo && (ORDEN_FRANJAS as readonly string[]).includes(tipo);
 }
 
+const DIACRITICOS = /[̀-ͯ]/g;
+
+function normalizar(texto: string): string {
+  return texto.toLowerCase().normalize("NFD").replace(DIACRITICOS, "");
+}
+
+function contieneIngredienteExcluido(
+  candidata: { nombre: string; ingredientes: string[] },
+  terminosExcluidos: string[]
+): boolean {
+  const nombreNormalizado = normalizar(candidata.nombre);
+  const ingredientesNormalizados = candidata.ingredientes.map(normalizar);
+  return terminosExcluidos.some((termino) => {
+    const t = normalizar(termino);
+    if (!t) return false;
+    return (
+      nombreNormalizado.includes(t) || ingredientesNormalizados.some((ing) => ing.includes(t))
+    );
+  });
+}
+
 /**
  * Agrupa comidas por franja en el orden fijo desayuno → almuerzo → comida_principal
  * → snack → cena. Las comidas sin tipo_comida reconocido (planes manuales o
@@ -94,7 +115,8 @@ export type PlanComidas = {
 export async function seleccionarComidas(
   supabase: SupabaseClient,
   objetivoCalorico: number,
-  restriccionesDieta: string[]
+  restriccionesDieta: string[],
+  ingredientesNoDeseados: string[] = []
 ): Promise<PlanComidas> {
   const comidas: ComidaSeleccionada[] = [];
 
@@ -118,11 +140,22 @@ export async function seleccionarComidas(
       throw new Error(`Error consultando comidas (${tipoComida}): ${error.message}`);
     }
 
-    const candidatas = (data ?? []) as ComidaCatalogo[];
+    const candidatasDieta = (data ?? []) as ComidaCatalogo[];
+
+    if (candidatasDieta.length === 0) {
+      throw new Error(
+        `No hay comidas compatibles en el catálogo para "${tipoComida}" con las restricciones dietéticas indicadas.`
+      );
+    }
+
+    const candidatas =
+      ingredientesNoDeseados.length > 0
+        ? candidatasDieta.filter((c) => !contieneIngredienteExcluido(c, ingredientesNoDeseados))
+        : candidatasDieta;
 
     if (candidatas.length === 0) {
       throw new Error(
-        `No hay comidas compatibles en el catálogo para "${tipoComida}" con las restricciones dietéticas indicadas.`
+        `No hay suficientes comidas en el catálogo para "${ETIQUETAS_TIPO_COMIDA[tipoComida]}" tras excluir: ${ingredientesNoDeseados.join(", ")}. Añade más comidas al catálogo o revisa las exclusiones.`
       );
     }
 

@@ -64,6 +64,7 @@ export type Cliente = {
   plan_estado: PlanEstado | null
   preferencias_alimentarias: string | null
   restricciones_dieta: RestriccionDieta[]
+  ingredientes_no_deseados: string[]
   nivel_experiencia: string | null
   equipamiento_disponible: string | null
   historial_lesiones: string | null

@@ -7,6 +7,7 @@ import type {
   MetodoCalculo,
 } from "@/lib/tdee";
 import type { RestriccionDieta } from "@/lib/supabase-types";
+import TagsInput from "@/components/TagsInput";
 
 export type TipoPlan = "perdida-peso" | "ganancia-muscular" | "mantenimiento" | "";
 export type NivelExperiencia = "principiante" | "intermedio" | "avanzado" | "";
@@ -20,6 +21,7 @@ export type ClienteIntakeValues = {
   objetivo: string;
   restricciones: string;
   restriccionesDieta: RestriccionDieta[];
+  ingredientesNoDeseados: string[];
   tipoPlan: TipoPlan;
   preferenciasAlimentarias: string;
   nivelExperiencia: NivelExperiencia;
@@ -47,6 +49,7 @@ const VALORES_VACIOS: ClienteIntakeValues = {
   objetivo: "",
   restricciones: "",
   restriccionesDieta: [],
+  ingredientesNoDeseados: [],
   tipoPlan: "",
   preferenciasAlimentarias: "",
   nivelExperiencia: "",
@@ -223,6 +226,21 @@ export default function FormularioIntakeCliente({
           className={inputClass}
           style={inputStyle}
         />
+      </div>
+
+      {/* Ingredientes que no le gustan (exclusiones puntuales por gusto, no restricción dietética) */}
+      <div>
+        <label className={labelClass}>Ingredientes que no le gustan</label>
+        <TagsInput
+          values={valores.ingredientesNoDeseados}
+          onChange={(ingredientesNoDeseados) =>
+            setValores((prev) => ({ ...prev, ingredientesNoDeseados }))
+          }
+          placeholder="Ej: tofu, champiñones…"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Ninguna comida ni alternativa del plan incluirá estos ingredientes.
+        </p>
       </div>
 
       {/* Nivel de experiencia */}
