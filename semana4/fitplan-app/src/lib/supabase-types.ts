@@ -101,6 +101,7 @@ export type Profesional = {
   color_principal: string
   elevenlabs_voice_id: string | null
   heygen_avatar_id: string | null
+  heygen_avatar_status: string | null
   plan: string
   created_at: string
 }
