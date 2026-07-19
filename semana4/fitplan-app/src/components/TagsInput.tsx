@@ -14,11 +14,19 @@ export default function TagsInput({ values, onChange, placeholder }: Props) {
   const [texto, setTexto] = useState("");
 
   const añadir = () => {
-    const valor = texto.trim();
-    if (!valor) return;
-    if (!values.some((v) => v.toLowerCase() === valor.toLowerCase())) {
-      onChange([...values, valor]);
+    const nuevos = texto
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (nuevos.length === 0) return;
+
+    const actualizados = [...values];
+    for (const valor of nuevos) {
+      if (!actualizados.some((v) => v.toLowerCase() === valor.toLowerCase())) {
+        actualizados.push(valor);
+      }
     }
+    onChange(actualizados);
     setTexto("");
   };
 
