@@ -27,6 +27,7 @@ export async function PATCH(
       nivel_actividad,
       metodo_calculo,
       objetivo_calorico_manual,
+      activo,
     } = await req.json();
 
     const supabaseAuth = createServerClient();
@@ -77,6 +78,7 @@ export async function PATCH(
         nivel_actividad,
         metodo_calculo,
         objetivo_calorico_manual,
+        activo,
       })
       .eq("id", id)
       .eq("profesional_id", profesional.id)

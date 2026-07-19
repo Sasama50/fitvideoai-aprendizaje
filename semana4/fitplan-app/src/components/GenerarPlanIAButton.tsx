@@ -6,6 +6,8 @@ import type { PlanEstado, PlanNutricion, PlanEntrenamiento } from "@/lib/supabas
 interface Props {
   clienteId: number;
   planEstado: PlanEstado;
+  bloqueado?: boolean;
+  motivoBloqueo?: string;
   onGenerado: (data: {
     plan_nutricion: PlanNutricion;
     plan_entrenamiento: PlanEntrenamiento;
@@ -13,7 +15,13 @@ interface Props {
   }) => void;
 }
 
-export default function GenerarPlanIAButton({ clienteId, planEstado, onGenerado }: Props) {
+export default function GenerarPlanIAButton({
+  clienteId,
+  planEstado,
+  bloqueado = false,
+  motivoBloqueo,
+  onGenerado,
+}: Props) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
 
@@ -46,6 +54,23 @@ export default function GenerarPlanIAButton({ clienteId, planEstado, onGenerado 
     } finally {
       setCargando(false);
     }
+  }
+
+  if (bloqueado) {
+    return (
+      <div className="mb-4">
+        <button
+          disabled
+          className="text-xs font-medium px-4 py-2 rounded-full opacity-40 cursor-not-allowed"
+          style={{ backgroundColor: "#6366f1", color: "#fff" }}
+        >
+          ✨ Generar borrador con IA
+        </button>
+        <p className="text-amber-400 text-xs mt-2">
+          {motivoBloqueo || "Esta acción no está disponible ahora mismo."}
+        </p>
+      </div>
+    );
   }
 
   return (

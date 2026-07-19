@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     const { data: cliente, error: clienteError } = await supabase
       .from("clientes")
       .select(
-        "id, nombre, objetivo, restricciones, restricciones_dieta, ingredientes_no_deseados, preferencias_alimentarias, nivel_experiencia, equipamiento_disponible, historial_lesiones, profesional_id, edad, peso_kg, altura_cm, sexo_biologico, nivel_actividad, metodo_calculo, objetivo_calorico_manual"
+        "id, nombre, objetivo, restricciones, restricciones_dieta, ingredientes_no_deseados, preferencias_alimentarias, nivel_experiencia, equipamiento_disponible, historial_lesiones, profesional_id, edad, peso_kg, altura_cm, sexo_biologico, nivel_actividad, metodo_calculo, objetivo_calorico_manual, activo"
       )
       .eq("id", client_id)
       .eq("profesional_id", profesional.id)
@@ -92,6 +92,13 @@ export async function POST(req: NextRequest) {
 
     if (clienteError || !cliente) {
       return NextResponse.json({ error: "cliente_no_encontrado" }, { status: 404 });
+    }
+
+    if (!cliente.activo) {
+      return NextResponse.json(
+        { error: "Este cliente está archivado. Reactívalo antes de generar un plan." },
+        { status: 400 }
+      );
     }
 
     const metodo: MetodoCalculo = cliente.metodo_calculo || "mifflin_st_jeor";

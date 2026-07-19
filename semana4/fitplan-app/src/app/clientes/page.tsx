@@ -33,6 +33,7 @@ type Cliente = {
   link_cliente: string | null
   link_visto_at: string | null
   link_visto_count: number
+  activo: boolean
 }
 
 const etiquetasPlan: Record<string, string> = {
@@ -60,6 +61,7 @@ export default function Clientes() {
   const [clienteEditando, setClienteEditando] = useState<number | null>(null)
   const [exitoId, setExitoId] = useState<number | null>(null)
   const [planVersion, setPlanVersion] = useState<Record<number, number>>({})
+  const [vista, setVista] = useState<'activos' | 'archivados'>('activos')
 
   const actualizarCliente = (clienteId: number, cambios: Partial<Cliente>) => {
     setClientes((prev) =>
@@ -126,6 +128,33 @@ export default function Clientes() {
     actualizarCliente(clienteId, { plan_estado: 'aprobado' })
   }
 
+  const cambiarActivo = async (clienteId: number, activo: boolean) => {
+    const res = await fetch(`/api/clientes/${clienteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo }),
+    })
+    if (res.ok) {
+      actualizarCliente(clienteId, { activo })
+    }
+  }
+
+  const handleArchivar = (clienteId: number, nombre: string | null) => {
+    const confirmado = window.confirm(
+      `¿Archivar a ${nombre ?? 'este cliente'}? Su historial y plan se conservan intactos y podrás reactivarlo cuando quieras.`
+    )
+    if (!confirmado) return
+    cambiarActivo(clienteId, false)
+  }
+
+  const handleReactivar = (clienteId: number) => {
+    cambiarActivo(clienteId, true)
+  }
+
+  const clientesVisibles = clientes.filter((c) =>
+    vista === 'activos' ? c.activo : !c.activo
+  )
+
   return (
     <main
       className="min-h-screen flex flex-col items-center px-4 py-12"
@@ -146,18 +175,48 @@ export default function Clientes() {
           </Link>
         </div>
 
-        <h2 className="text-xl font-semibold text-white mb-6">Clientes registrados</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-white">Clientes registrados</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setVista('activos')}
+              className="text-xs font-medium px-3 py-1 rounded-full transition"
+              style={
+                vista === 'activos'
+                  ? { backgroundColor: '#6366f1', color: '#fff' }
+                  : { backgroundColor: '#0f3460', color: '#9ca3af' }
+              }
+            >
+              Activos
+            </button>
+            <button
+              onClick={() => setVista('archivados')}
+              className="text-xs font-medium px-3 py-1 rounded-full transition"
+              style={
+                vista === 'archivados'
+                  ? { backgroundColor: '#6366f1', color: '#fff' }
+                  : { backgroundColor: '#0f3460', color: '#9ca3af' }
+              }
+            >
+              Archivados
+            </button>
+          </div>
+        </div>
 
-        {clientes.length === 0 ? (
+        {clientesVisibles.length === 0 ? (
           <div
             className="rounded-2xl p-8 shadow-2xl text-center"
             style={{ backgroundColor: '#16213e' }}
           >
-            <p className="text-gray-400 text-sm">Todavía no hay clientes registrados</p>
+            <p className="text-gray-400 text-sm">
+              {vista === 'archivados'
+                ? 'No hay clientes archivados'
+                : 'Todavía no hay clientes registrados'}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {clientes.map((cliente) => (
+            {clientesVisibles.map((cliente) => (
               <div key={cliente.id}>
                 {/* Tarjeta */}
                 <div
@@ -196,6 +255,17 @@ export default function Clientes() {
                       </Link>
                       <button
                         onClick={() =>
+                          cliente.activo
+                            ? handleArchivar(cliente.id, cliente.nombre)
+                            : handleReactivar(cliente.id)
+                        }
+                        className="text-xs text-gray-400 hover:text-white transition"
+                        title={cliente.activo ? 'Archivar cliente' : 'Reactivar cliente'}
+                      >
+                        {cliente.activo ? 'Archivar' : 'Reactivar'}
+                      </button>
+                      <button
+                        onClick={() =>
                           setClienteEditando(
                             clienteEditando === cliente.id ? null : cliente.id
                           )
@@ -232,6 +302,14 @@ export default function Clientes() {
                     >
                       Plan: {etiquetasEstado[cliente.plan_estado ?? 'sin_generar']}
                     </span>
+                    {!cliente.activo && (
+                      <span
+                        className="text-xs font-medium px-3 py-1 rounded-full"
+                        style={{ backgroundColor: '#3a1414', color: '#e74c3c' }}
+                      >
+                        Archivado
+                      </span>
+                    )}
                     {(cliente.plan_estado ?? 'sin_generar') === 'borrador' && (
                       <button
                         onClick={() => handleAprobar(cliente.id)}
@@ -293,11 +371,16 @@ export default function Clientes() {
                       email={cliente.email}
                       yaEnviadoAntes={!!cliente.link_cliente}
                       bloqueado={
+                        !cliente.activo ||
                         (cliente.plan_estado ?? 'sin_generar') !== 'aprobado' ||
                         !cliente.guion ||
                         cliente.audio_status !== 'completado'
                       }
-                      motivoBloqueo="Aprueba el plan y regenera el guión y el audio antes de enviar."
+                      motivoBloqueo={
+                        !cliente.activo
+                          ? 'Cliente archivado — reactívalo para generar o enviar planes.'
+                          : 'Aprueba el plan y regenera el guión y el audio antes de enviar.'
+                      }
                     />
                     {necesitaRecordatorio(cliente) && (
                       <BotonRecordatorio clienteId={String(cliente.id)} email={cliente.email} />
@@ -326,6 +409,8 @@ export default function Clientes() {
                     <GenerarPlanIAButton
                       clienteId={cliente.id}
                       planEstado={cliente.plan_estado ?? 'sin_generar'}
+                      bloqueado={!cliente.activo}
+                      motivoBloqueo="Cliente archivado — reactívalo para generar o enviar planes."
                       onGenerado={(data) => {
                         actualizarCliente(cliente.id, data)
                         setPlanVersion((prev) => ({

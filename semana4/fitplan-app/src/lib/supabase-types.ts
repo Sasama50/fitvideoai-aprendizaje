@@ -89,6 +89,7 @@ export type Cliente = {
   link_visto_at: string | null
   link_visto_count: number
   link_descarga_at: string | null
+  activo: boolean
 }
 
 export type Profesional = {

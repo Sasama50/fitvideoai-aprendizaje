@@ -46,6 +46,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 })
     }
 
+    if (!cliente.activo) {
+      return NextResponse.json(
+        { error: 'Este cliente está archivado. Reactívalo antes de enviarle un plan.' },
+        { status: 400 }
+      )
+    }
+
     if (!cliente.email) {
       return NextResponse.json(
         { error: 'El cliente no tiene email guardado. Añádelo en su perfil antes de enviar.' },
