@@ -86,6 +86,20 @@ export default async function PlanCliente({ params }: Props) {
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
+        {cliente.video_url && cliente.video_status === 'completado' && (
+          <section className="bg-white rounded-2xl shadow-sm p-5">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">
+              🎬 Tu profesional te da la bienvenida
+            </p>
+            <video
+              src={cliente.video_url}
+              controls
+              className="w-full rounded-xl"
+              style={{ maxHeight: '360px' }}
+            />
+          </section>
+        )}
+
         {cliente.audio_url && (
           <section className="bg-white rounded-2xl shadow-sm p-5">
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">
