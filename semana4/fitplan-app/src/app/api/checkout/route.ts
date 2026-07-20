@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -10,6 +11,15 @@ const PLANES = {
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin") || "http://localhost:3001";
+
+  const supabaseAuth = createServerClient();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "no_autenticado" }, { status: 401 });
+  }
 
   let plan: keyof typeof PLANES = "pro";
   let heygenAddon = false;
@@ -39,7 +49,12 @@ export async function POST(request: Request) {
         },
       },
     ],
-    metadata: { plan, heygen_addon: heygenAddon ? "true" : "false" },
+    customer_email: user.email,
+    metadata: {
+      plan,
+      heygen_addon: heygenAddon ? "true" : "false",
+      user_id: user.id,
+    },
     success_url: `${origin}/success`,
     cancel_url: `${origin}`,
   });
