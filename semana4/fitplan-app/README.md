@@ -48,6 +48,9 @@ que ninguna de estas claves sea una clave de test/sandbox:
 - `HEYGEN_API_KEY`, `ANTHROPIC_API_KEY`, `RESEND_FROM_EMAIL` y cualquier otra
   clave de proveedor externo: confirmar que es la clave/dominio de producción
   real, no una de desarrollo/sandbox copiada sin querer desde `.env.local`.
+- Stripe Live: webhook configurado, pero la cuenta NO está activada para
+  cobros reales (falta verificación de negocio en el onboarding de Stripe).
+  No asumir que el modo Live está operativo hasta completar esa activación.
 
 Este es un fallo recurrente en este proyecto (ha pasado ya con varias claves
 distintas) — revisarlo explícitamente en cada release, no asumir que quedó
