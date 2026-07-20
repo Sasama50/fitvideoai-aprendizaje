@@ -25,12 +25,22 @@ export async function POST(req: NextRequest) {
 
   const { data: profesional, error: profesionalError } = await supabase
     .from('profesionales')
-    .select('id')
+    .select('id, elevenlabs_voice_id')
     .eq('user_id', user.id)
     .single()
 
   if (profesionalError || !profesional) {
     return NextResponse.json({ error: 'profesional_no_encontrado' }, { status: 400 })
+  }
+
+  if (!profesional.elevenlabs_voice_id) {
+    return NextResponse.json(
+      {
+        error:
+          'Este profesional no tiene una voz configurada. Completa el Paso 2 del onboarding (clonar voz) antes de generar audio.',
+      },
+      { status: 400 }
+    )
   }
 
   // 1. Obtener datos del cliente
@@ -55,14 +65,8 @@ export async function POST(req: NextRequest) {
   // 2. Generar link_cliente si no existe (UUID único de la página del cliente)
   const linkToken = cliente.link_cliente || crypto.randomUUID()
 
-  // 3. Obtener voice_id
-  const voiceId = process.env.ELEVENLABS_VOICE_ID
-  if (!voiceId) {
-    return NextResponse.json(
-      { error: 'ELEVENLABS_VOICE_ID no configurado en .env.local' },
-      { status: 500 }
-    )
-  }
+  // 3. Voice_id real del profesional (validado más arriba)
+  const voiceId = profesional.elevenlabs_voice_id
 
   // 4. Llamar a ElevenLabs TTS
   const elevenRes = await fetch(
