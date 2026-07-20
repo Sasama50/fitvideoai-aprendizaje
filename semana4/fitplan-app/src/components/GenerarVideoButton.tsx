@@ -4,19 +4,25 @@ import { useState } from "react";
 
 interface Props {
   clienteId: number;
-  guion: string;
   videoIdInicial: string | null;
   videoUrlInicial: string | null;
+  videoStatusInicial?: string | null;
+  bloqueado?: boolean;
+  motivoBloqueo?: string;
 }
 
 export default function GenerarVideoButton({
   clienteId,
-  guion,
   videoIdInicial,
   videoUrlInicial,
+  videoStatusInicial,
+  bloqueado = false,
+  motivoBloqueo,
 }: Props) {
   const initialEstado = videoUrlInicial
     ? "completado"
+    : videoStatusInicial === "failed"
+    ? "error"
     : videoIdInicial
     ? "done"
     : "idle";
@@ -27,22 +33,25 @@ export default function GenerarVideoButton({
   const [videoId, setVideoId] = useState<string>(videoIdInicial ?? "");
   const [videoUrl, setVideoUrl] = useState<string>(videoUrlInicial ?? "");
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [errorMensaje, setErrorMensaje] = useState<string | null>(null);
 
   async function generarVideo() {
     setEstado("loading");
+    setErrorMensaje(null);
     try {
       const res = await fetch("/api/generar-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cliente_id: clienteId, guion }),
+        body: JSON.stringify({ cliente_id: clienteId }),
       });
 
-      if (!res.ok) throw new Error("Error en la respuesta");
-
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error en la respuesta");
+
       setVideoId(data.video_id);
       setEstado("done");
-    } catch {
+    } catch (e: unknown) {
+      setErrorMensaje(e instanceof Error ? e.message : "Error desconocido");
       setEstado("error");
     }
   }
@@ -51,18 +60,38 @@ export default function GenerarVideoButton({
     setCheckingStatus(true);
     try {
       const res = await fetch(`/api/video-status?cliente_id=${clienteId}`);
-      if (!res.ok) throw new Error("Error en la respuesta");
-
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error en la respuesta");
+
       if (data.video_status === "completado" && data.video_url) {
         setVideoUrl(data.video_url);
         setEstado("completado");
+      } else if (data.video_status === "failed") {
+        setErrorMensaje(data.error || "HeyGen no pudo generar el vídeo.");
+        setEstado("error");
       }
     } catch {
       // silently ignore — user can retry
     } finally {
       setCheckingStatus(false);
     }
+  }
+
+  if (bloqueado) {
+    return (
+      <div className="mt-3">
+        <button
+          disabled
+          className="text-xs font-medium px-4 py-2 rounded-full opacity-40 cursor-not-allowed"
+          style={{ backgroundColor: "#16a34a", color: "#fff" }}
+        >
+          🎬 Generar vídeo de bienvenida
+        </button>
+        <p className="text-amber-400 text-xs mt-2">
+          {motivoBloqueo || "Esta acción no está disponible ahora mismo."}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -73,7 +102,7 @@ export default function GenerarVideoButton({
           className="text-xs font-medium px-4 py-2 rounded-full transition"
           style={{ backgroundColor: "#16a34a", color: "#fff" }}
         >
-          🎬 Generar vídeo
+          🎬 Generar vídeo de bienvenida
         </button>
       )}
 
@@ -94,10 +123,10 @@ export default function GenerarVideoButton({
             className="text-xs font-medium px-4 py-2 rounded-full transition"
             style={{ backgroundColor: "#16a34a", color: "#fff" }}
           >
-            🎬 Generar vídeo
+            🎬 Reintentar vídeo de bienvenida
           </button>
           <p className="text-red-400 text-xs mt-2">
-            Error al generar el vídeo. Inténtalo de nuevo.
+            {errorMensaje || "Error al generar el vídeo. Inténtalo de nuevo."}
           </p>
         </>
       )}
@@ -128,7 +157,7 @@ export default function GenerarVideoButton({
           className="mt-2 rounded-xl px-4 py-3 text-xs"
           style={{ backgroundColor: "#0f3460" }}
         >
-          <p className="text-green-400 font-semibold mb-3">🎉 Vídeo listo</p>
+          <p className="text-green-400 font-semibold mb-3">🎉 Vídeo de bienvenida listo</p>
           <video
             src={videoUrl}
             controls
@@ -143,6 +172,12 @@ export default function GenerarVideoButton({
           >
             Abrir en nueva pestaña ↗
           </a>
+          <button
+            onClick={generarVideo}
+            className="block mt-3 text-xs text-gray-400 hover:text-white transition"
+          >
+            🔄 Regenerar vídeo de bienvenida
+          </button>
         </div>
       )}
     </div>

@@ -28,6 +28,7 @@ type Cliente = {
   guion: string | null
   video_id: string | null
   video_url: string | null
+  video_status: string | null
   audio_status: string | null
   audio_url: string | null
   link_cliente: string | null
@@ -62,6 +63,8 @@ export default function Clientes() {
   const [exitoId, setExitoId] = useState<number | null>(null)
   const [planVersion, setPlanVersion] = useState<Record<number, number>>({})
   const [vista, setVista] = useState<'activos' | 'archivados'>('activos')
+  const [heygenAddon, setHeygenAddon] = useState(false)
+  const [heygenAvatarStatus, setHeygenAvatarStatus] = useState<string | null>(null)
 
   const actualizarCliente = (clienteId: number, cambios: Partial<Cliente>) => {
     setClientes((prev) =>
@@ -76,6 +79,19 @@ export default function Clientes() {
       .select('*')
       .order('created_at', { ascending: false })
       .then(({ data }) => setClientes(data ?? []))
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase
+        .from('profesionales')
+        .select('heygen_addon, heygen_avatar_status')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data: profesional }) => {
+          setHeygenAddon(profesional?.heygen_addon ?? false)
+          setHeygenAvatarStatus(profesional?.heygen_avatar_status ?? null)
+        })
+    })
   }, [])
 
   const handleGuardar = async (
@@ -339,9 +355,17 @@ export default function Clientes() {
                   {cliente.guion && (
                     <GenerarVideoButton
                       clienteId={cliente.id}
-                      guion={cliente.guion}
                       videoIdInicial={cliente.video_id ?? null}
                       videoUrlInicial={cliente.video_url ?? null}
+                      videoStatusInicial={cliente.video_status ?? null}
+                      bloqueado={!heygenAddon || heygenAvatarStatus !== 'ready'}
+                      motivoBloqueo={
+                        !heygenAddon
+                          ? 'Añade el add-on de vídeo HeyGen (+€35/mes Pro, +€59/mes Studio) para generar el vídeo de bienvenida.'
+                          : heygenAvatarStatus === 'processing'
+                          ? 'Tu avatar todavía se está generando — vuelve a intentarlo en un rato.'
+                          : 'Completa el Paso 3 del onboarding para entrenar tu avatar antes de generar vídeos.'
+                      }
                     />
                   )}
                   <BotonesAudio
