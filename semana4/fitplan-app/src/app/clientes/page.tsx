@@ -352,22 +352,20 @@ export default function Clientes() {
                     motivoBloqueo="Aprueba el plan antes de generar el guión."
                     onGuionGenerado={(guion) => actualizarCliente(cliente.id, { guion })}
                   />
-                  {cliente.guion && (
-                    <GenerarVideoButton
-                      clienteId={cliente.id}
-                      videoIdInicial={cliente.video_id ?? null}
-                      videoUrlInicial={cliente.video_url ?? null}
-                      videoStatusInicial={cliente.video_status ?? null}
-                      bloqueado={!heygenAddon || heygenAvatarStatus !== 'ready'}
-                      motivoBloqueo={
-                        !heygenAddon
-                          ? 'Añade el add-on de vídeo HeyGen (+€35/mes Pro, +€59/mes Studio) para generar el vídeo de bienvenida.'
-                          : heygenAvatarStatus === 'processing'
-                          ? 'Tu avatar todavía se está generando — vuelve a intentarlo en un rato.'
-                          : 'Completa el Paso 3 del onboarding para entrenar tu avatar antes de generar vídeos.'
-                      }
-                    />
-                  )}
+                  <GenerarVideoButton
+                    clienteId={cliente.id}
+                    videoIdInicial={cliente.video_id ?? null}
+                    videoUrlInicial={cliente.video_url ?? null}
+                    videoStatusInicial={cliente.video_status ?? null}
+                    bloqueado={!heygenAddon || heygenAvatarStatus !== 'ready'}
+                    motivoBloqueo={
+                      !heygenAddon
+                        ? 'Añade el add-on de vídeo HeyGen (+€35/mes Pro, +€59/mes Studio) para generar el vídeo de bienvenida.'
+                        : heygenAvatarStatus === 'processing'
+                        ? 'Tu avatar todavía se está generando — vuelve a intentarlo en un rato.'
+                        : 'Completa el Paso 3 del onboarding para entrenar tu avatar antes de generar vídeos.'
+                    }
+                  />
                   <BotonesAudio
                     key={`audio-${cliente.id}-${cliente.audio_status ?? 'n'}`}
                     clienteId={cliente.id}

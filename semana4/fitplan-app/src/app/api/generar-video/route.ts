@@ -1,6 +1,54 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+const ETIQUETAS_TIPO_PLAN: Record<string, string> = {
+  "perdida-peso": "Pérdida de peso",
+  "ganancia-muscular": "Ganancia muscular",
+  "mantenimiento": "Mantenimiento",
+};
+
+async function generarMensajeBienvenida(
+  nombreProfesional: string,
+  cliente: { nombre: string; objetivo: string | null; tipo_plan: string | null }
+): Promise<string> {
+  const tipoPlanLabel = cliente.tipo_plan
+    ? ETIQUETAS_TIPO_PLAN[cliente.tipo_plan] ?? cliente.tipo_plan
+    : "sin especificar";
+
+  const prompt = `
+Eres el asistente de ${nombreProfesional}, nutricionista/entrenador personal.
+Genera un guión corto (40-60 palabras) para un vídeo de bienvenida que se
+graba UNA SOLA VEZ para un cliente nuevo y se queda fijo en su página de
+plan de forma indefinida — no es un mensaje semanal y no debe caducar.
+
+Cliente: ${cliente.nombre}
+Objetivo general: ${cliente.objetivo || "sin especificar"}
+Tipo de plan: ${tipoPlanLabel}
+
+El guión debe:
+- Empezar por "Hola ${cliente.nombre}"
+- Dar la bienvenida a FitVideoAI de forma cercana y personal
+- Mencionar el objetivo general del cliente, sin datos de una semana concreta
+- NO mencionar comidas, calorías, rutinas de entrenamiento ni ninguna semana específica
+- Sonar natural, como si ${nombreProfesional} lo estuviera grabando a cámara
+- Acabar invitando a escribir ante cualquier duda
+- NO mencionar que es generado por IA
+`.trim();
+
+  const message = await anthropic.messages.create({
+    model: "claude-opus-4-7",
+    max_tokens: 256,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  return message.content[0].type === "text" ? message.content[0].text.trim() : "";
+}
 
 export async function POST(request: Request) {
   try {
@@ -26,7 +74,7 @@ export async function POST(request: Request) {
 
     const { data: profesional, error: profesionalError } = await supabase
       .from("profesionales")
-      .select("id, heygen_addon, heygen_avatar_id, heygen_avatar_status")
+      .select("id, nombre, heygen_addon, heygen_avatar_id, heygen_avatar_status")
       .eq("user_id", user.id)
       .single();
 
@@ -53,7 +101,7 @@ export async function POST(request: Request) {
 
     const { data: cliente, error: clienteError } = await supabase
       .from("clientes")
-      .select("id, guion")
+      .select("id, nombre, objetivo, tipo_plan, mensaje_bienvenida")
       .eq("id", cliente_id)
       .eq("profesional_id", profesional.id)
       .single();
@@ -62,11 +110,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "cliente_no_encontrado" }, { status: 404 });
     }
 
-    if (!cliente.guion) {
-      return NextResponse.json(
-        { error: "Genera el guión primero antes de crear el vídeo" },
-        { status: 400 }
+    // El vídeo de bienvenida es evergreen: usa su propio guión (generado una
+    // sola vez), no el guión semanal, que cambia cada semana con el plan.
+    let mensajeBienvenida = cliente.mensaje_bienvenida;
+
+    if (!mensajeBienvenida) {
+      mensajeBienvenida = await generarMensajeBienvenida(
+        profesional.nombre || "tu profesional",
+        cliente
       );
+
+      if (!mensajeBienvenida) {
+        return NextResponse.json(
+          { error: "No se pudo generar el guión del vídeo de bienvenida" },
+          { status: 500 }
+        );
+      }
+
+      const { error: guardarMensajeError } = await supabase
+        .from("clientes")
+        .update({ mensaje_bienvenida: mensajeBienvenida })
+        .eq("id", cliente_id)
+        .eq("profesional_id", profesional.id);
+
+      if (guardarMensajeError) {
+        return NextResponse.json(
+          { error: guardarMensajeError.message },
+          { status: 500 }
+        );
+      }
     }
 
     // 1. Resolver el look entrenado (avatar_id que exige POST /v3/videos) a partir
@@ -105,7 +177,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         type: "avatar",
         avatar_id: lookId,
-        script: cliente.guion,
+        script: mensajeBienvenida,
         resolution: "720p",
         background: { type: "color", value: "#1a1a2e" },
       }),
