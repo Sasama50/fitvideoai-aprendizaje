@@ -18,17 +18,6 @@ export default function Home() {
     plan: string;
     limite: number;
   } | null>(null);
-  const [planSeleccionado, setPlanSeleccionado] = useState<"pro" | "studio">("pro");
-  const [heygenAddon, setHeygenAddon] = useState(false);
-
-  const PRECIOS: Record<"pro" | "studio", { base: number; conHeygen: number }> = {
-    pro: { base: 69, conHeygen: 104 },
-    studio: { base: 129, conHeygen: 188 },
-  };
-
-  const precioActual = heygenAddon
-    ? PRECIOS[planSeleccionado].conHeygen
-    : PRECIOS[planSeleccionado].base;
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -88,6 +77,8 @@ export default function Home() {
     if (!res.ok) {
       if (json.error === "limite_alcanzado") {
         setLimiteAlcanzado({ plan: json.plan, limite: json.limite });
+      } else if (json.error === "sin_plan_activo") {
+        router.push("/pricing");
       } else {
         setErrorCliente(json.error || "No se pudo guardar el cliente.");
       }
@@ -141,63 +132,6 @@ export default function Home() {
           </h2>
 
           <FormularioIntakeCliente onSubmit={handleSubmit} error={errorCliente} />
-        </div>
-
-        {/* Selector de suscripción */}
-        <div
-          className="mt-4 rounded-2xl p-6 shadow-2xl"
-          style={{ backgroundColor: "#16213e" }}
-        >
-          <h3 className="text-sm font-semibold text-white mb-4">Suscripción</h3>
-
-          <div className="flex gap-2 mb-4">
-            <button
-              type="button"
-              onClick={() => setPlanSeleccionado("pro")}
-              className="flex-1 py-2 rounded-lg text-sm font-medium transition border"
-              style={
-                planSeleccionado === "pro"
-                  ? { backgroundColor: "#e94560", borderColor: "#e94560", color: "#fff" }
-                  : { backgroundColor: "transparent", borderColor: "#374151", color: "#d1d5db" }
-              }
-            >
-              Pro — €69
-            </button>
-            <button
-              type="button"
-              onClick={() => setPlanSeleccionado("studio")}
-              className="flex-1 py-2 rounded-lg text-sm font-medium transition border"
-              style={
-                planSeleccionado === "studio"
-                  ? { backgroundColor: "#e94560", borderColor: "#e94560", color: "#fff" }
-                  : { backgroundColor: "transparent", borderColor: "#374151", color: "#d1d5db" }
-              }
-            >
-              Studio — €129
-            </button>
-          </div>
-
-          <label className="flex items-start gap-2 text-sm text-gray-300 mb-4 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={heygenAddon}
-              onChange={(e) => setHeygenAddon(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span>
-              Añadir HeyGen — vídeo de bienvenida + vídeo de progreso mensual
-              con tu cara (+€35/mes en Pro, +€59/mes en Studio)
-            </span>
-          </label>
-
-          <button
-            onClick={() => handleCheckout(planSeleccionado, heygenAddon)}
-            disabled={cargandoPago}
-            className="w-full py-3 rounded-lg font-semibold text-white text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ backgroundColor: "#e94560" }}
-          >
-            {cargandoPago ? "Redirigiendo…" : `Suscribirse — €${precioActual}/mes`}
-          </button>
         </div>
 
         {/* Modal de límite de plan alcanzado */}

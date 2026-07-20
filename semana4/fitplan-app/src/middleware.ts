@@ -47,6 +47,30 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Gate de onboarding/plan: no dejar llegar a pantallas de generar/gestionar
+  // clientes sin haber completado el onboarding ni sin plan activo.
+  const isGateExemptRoute = pathname === "/onboarding" || pathname === "/pricing";
+
+  if (user && !isPublicRoute && !isGateExemptRoute) {
+    const { data: profesional } = await supabase
+      .from("profesionales")
+      .select("plan, onboarding_completado")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!profesional?.onboarding_completado) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+
+    if (!profesional.plan) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/pricing";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 
