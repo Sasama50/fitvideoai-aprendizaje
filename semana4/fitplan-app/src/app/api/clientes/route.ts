@@ -57,7 +57,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const limite = LIMITES_PLAN[profesional.plan] ?? LIMITES_PLAN.pro;
+    if (!profesional.plan || !(profesional.plan in LIMITES_PLAN)) {
+      return NextResponse.json(
+        { error: "sin_plan_activo" },
+        { status: 403 }
+      );
+    }
+
+    const limite = LIMITES_PLAN[profesional.plan];
 
     const { count, error: countError } = await supabase
       .from("clientes")

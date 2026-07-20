@@ -49,7 +49,7 @@ export default function OnboardingPage() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      setPlan(profesional?.plan ?? "pro");
+      setPlan(profesional?.plan ?? null);
       setAvatarStatus((profesional?.heygen_avatar_status as AvatarStatus) ?? null);
     };
 
@@ -62,6 +62,22 @@ export default function OnboardingPage() {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paso, avatarStatus]);
+
+  useEffect(() => {
+    if (paso !== 4) return;
+    const marcarOnboardingCompletado = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from("profesionales")
+        .update({ onboarding_completado: true })
+        .eq("user_id", user.id);
+    };
+    marcarOnboardingCompletado();
+  }, [paso]);
 
   const handleContinuarMarca = async () => {
     setErrorMarca("");
