@@ -112,11 +112,26 @@ export type PlanComidas = {
   comidas: ComidaSeleccionada[];
 };
 
+/**
+ * Hash determinista (no aleatorio) para elegir de forma reproducible entre
+ * candidatas igual de buenas. Mismo cliente + misma semana + misma franja
+ * siempre da el mismo índice; cambia solo si cambia la semana.
+ */
+function hashDeterminista(texto: string): number {
+  let hash = 0;
+  for (let i = 0; i < texto.length; i++) {
+    hash = (hash * 31 + texto.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
 export async function seleccionarComidas(
   supabase: SupabaseClient,
   objetivoCalorico: number,
   restriccionesDieta: string[],
-  ingredientesNoDeseados: string[] = []
+  ingredientesNoDeseados: string[] = [],
+  clienteId: string | number,
+  semanaNumero: number = 1
 ): Promise<PlanComidas> {
   const comidas: ComidaSeleccionada[] = [];
 
@@ -159,15 +174,34 @@ export async function seleccionarComidas(
       );
     }
 
-    let elegida = candidatas[0];
-    let mejorDiferencia = Math.abs(elegida.calorias - objetivoFranja);
+    let mejorCandidata = candidatas[0];
+    let mejorDiferencia = Math.abs(mejorCandidata.calorias - objetivoFranja);
     for (const candidata of candidatas) {
       const diferencia = Math.abs(candidata.calorias - objetivoFranja);
       if (diferencia < mejorDiferencia) {
         mejorDiferencia = diferencia;
-        elegida = candidata;
+        mejorCandidata = candidata;
       }
     }
+
+    // Rotación determinista: en vez de fijar siempre la única mejor opción,
+    // rota entre todas las candidatas igual de buenas (dentro del mismo
+    // margen calórico que ya se usa para las alternativas), eligiendo según
+    // cliente + semana + franja. Mantiene intacta la precisión calórica de
+    // sesión 74 porque nunca sale del margen aceptable.
+    const margenRotacion = 0.1;
+    const elegibles = candidatas
+      .filter(
+        (c) =>
+          Math.abs(c.calorias - mejorCandidata.calorias) <=
+          mejorCandidata.calorias * margenRotacion
+      )
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    const indice =
+      hashDeterminista(`${clienteId}-${semanaNumero}-${tipoComida}`) % elegibles.length;
+    const elegida = elegibles[indice];
+    mejorDiferencia = Math.abs(elegida.calorias - objetivoFranja);
 
     const resto = candidatas.filter((c) => c !== elegida);
     const dentroDeMargen = (margen: number) =>

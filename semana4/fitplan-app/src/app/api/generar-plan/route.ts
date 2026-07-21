@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     const { data: cliente, error: clienteError } = await supabase
       .from("clientes")
       .select(
-        "id, nombre, objetivo, restricciones, restricciones_dieta, ingredientes_no_deseados, preferencias_alimentarias, nivel_experiencia, equipamiento_disponible, historial_lesiones, profesional_id, edad, peso_kg, altura_cm, sexo_biologico, nivel_actividad, metodo_calculo, objetivo_calorico_manual, activo"
+        "id, nombre, objetivo, restricciones, restricciones_dieta, ingredientes_no_deseados, preferencias_alimentarias, nivel_experiencia, equipamiento_disponible, historial_lesiones, profesional_id, edad, peso_kg, altura_cm, sexo_biologico, nivel_actividad, metodo_calculo, objetivo_calorico_manual, activo, semana_numero"
       )
       .eq("id", client_id)
       .eq("profesional_id", profesional.id)
@@ -200,7 +200,9 @@ No devuelvas texto fuera del JSON.
       supabase,
       plan.objetivo_calorico,
       cliente.restricciones_dieta || [],
-      cliente.ingredientes_no_deseados || []
+      cliente.ingredientes_no_deseados || [],
+      cliente.id,
+      cliente.semana_numero || 1
     );
 
     const plan_nutricion = {
