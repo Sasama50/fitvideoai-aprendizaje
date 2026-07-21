@@ -4,6 +4,7 @@ import AudioPlayer from '@/components/AudioPlayer'
 import BotonDescarga from '@/components/BotonDescarga'
 import { youtubeSearchUrl } from '@/lib/youtube'
 import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
+import type { AlternativaComida } from '@/lib/supabase-types'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,6 +21,7 @@ interface Comida {
   ingredientes: string[]
   calorias?: number
   preparacion?: string
+  alternativas?: AlternativaComida[]
 }
 
 interface Ejercicio {
@@ -143,6 +145,14 @@ export default async function PlanCliente({ params }: Props) {
                         {comida.preparacion && (
                           <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                             {comida.preparacion}
+                          </p>
+                        )}
+                        {comida.alternativas && comida.alternativas.length > 0 && (
+                          <p className="text-xs text-gray-400 mt-2">
+                            <span className="font-medium text-gray-500">Alternativas:</span>{' '}
+                            {comida.alternativas
+                              .map((alt) => `${alt.nombre} (${alt.calorias} kcal)`)
+                              .join(' · ')}
                           </p>
                         )}
                       </div>
