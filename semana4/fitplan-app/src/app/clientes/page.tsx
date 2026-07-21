@@ -353,6 +353,7 @@ export default function Clientes() {
                     onGuionGenerado={(guion) => actualizarCliente(cliente.id, { guion })}
                   />
                   <GenerarVideoButton
+                    key={`video-${cliente.id}-${cliente.video_status ?? 'n'}`}
                     clienteId={cliente.id}
                     videoIdInicial={cliente.video_id ?? null}
                     videoUrlInicial={cliente.video_url ?? null}

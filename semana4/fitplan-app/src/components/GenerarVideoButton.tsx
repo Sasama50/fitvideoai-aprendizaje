@@ -19,10 +19,16 @@ export default function GenerarVideoButton({
   bloqueado = false,
   motivoBloqueo,
 }: Props) {
-  const initialEstado = videoUrlInicial
-    ? "completado"
+  // video_status es la fuente de verdad del estado actual; video_url puede
+  // quedarse con la URL del vídeo anterior mientras se regenera uno nuevo
+  // (el update de generar-video solo toca video_id/video_status, no borra
+  // video_url), así que hay que comprobarlo antes de asumir "completado".
+  const initialEstado = videoStatusInicial === "video_en_proceso"
+    ? "done"
     : videoStatusInicial === "failed"
     ? "error"
+    : videoUrlInicial
+    ? "completado"
     : videoIdInicial
     ? "done"
     : "idle";
