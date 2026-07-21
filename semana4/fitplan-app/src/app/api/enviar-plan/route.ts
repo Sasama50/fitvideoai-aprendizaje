@@ -78,9 +78,15 @@ export async function POST(req: NextRequest) {
       ? `Se ha actualizado tu plan de ${cliente.nombre_profesional || 'tu entrenador'}`
       : `Tu plan de esta semana de ${cliente.nombre_profesional || 'tu entrenador'}`
 
+    const tieneVideo = cliente.video_status === 'completado' && !!cliente.video_url
+
     const mensaje = notificarCambio
-      ? 'Tu profesional ha actualizado tu plan de esta semana, con audio personalizado incluido.'
-      : 'Tu plan de esta semana ya está listo, con audio personalizado incluido.'
+      ? tieneVideo
+        ? 'Tu profesional ha actualizado tu plan de esta semana, con vídeo y audio personalizados incluidos.'
+        : 'Tu profesional ha actualizado tu plan de esta semana, con audio personalizado incluido.'
+      : tieneVideo
+        ? 'Tu plan de esta semana ya está listo, con vídeo y audio personalizados incluidos.'
+        : 'Tu plan de esta semana ya está listo, con audio personalizado incluido.'
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,

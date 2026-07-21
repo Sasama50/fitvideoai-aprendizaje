@@ -71,13 +71,39 @@ export async function GET(request: NextRequest) {
     const { status, video_url, failure_message } = heygenData.data ?? {};
 
     if (status === "completed" && video_url) {
+      // HeyGen devuelve una URL firmada y temporal (caduca en ~1 semana) — hay
+      // que descargarla y re-alojarla en Storage para que el enlace del plan
+      // no se rompa, mismo patrón que ya usa el audio (bucket "audios").
+      const videoRes = await fetch(video_url);
+      if (!videoRes.ok) {
+        console.error("Error descargando el vídeo completado desde HeyGen:", videoRes.status);
+        return NextResponse.json({ video_status: "video_en_proceso" });
+      }
+
+      const videoBuffer = await videoRes.arrayBuffer();
+      const storagePath = `${cliente_id}/bienvenida.mp4`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("videos")
+        .upload(storagePath, new Uint8Array(videoBuffer), {
+          contentType: "video/mp4",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error("Error subiendo el vídeo a Supabase Storage:", uploadError);
+        return NextResponse.json({ error: uploadError.message }, { status: 500 });
+      }
+
+      const { data: urlData } = supabase.storage.from("videos").getPublicUrl(storagePath);
+
       await supabase
         .from("clientes")
-        .update({ video_url, video_status: "completado" })
+        .update({ video_url: urlData.publicUrl, video_status: "completado" })
         .eq("id", cliente_id)
         .eq("profesional_id", profesional.id);
 
-      return NextResponse.json({ video_status: "completado", video_url });
+      return NextResponse.json({ video_status: "completado", video_url: urlData.publicUrl });
     }
 
     if (status === "failed") {

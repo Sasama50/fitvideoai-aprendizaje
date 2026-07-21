@@ -69,6 +69,18 @@ export default async function PlanPage({ params }: Props) {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Vídeo de bienvenida */}
+            {c.video_status === 'completado' && c.video_url && (
+              <Section titulo="🎬 Vídeo de bienvenida">
+                <video
+                  src={c.video_url}
+                  controls
+                  className="w-full rounded-xl"
+                  style={{ maxHeight: '360px' }}
+                />
+              </Section>
+            )}
+
             {/* Nota del profesional */}
             {c.nota_profesional && (
               <Section titulo="Nota del profesional">
