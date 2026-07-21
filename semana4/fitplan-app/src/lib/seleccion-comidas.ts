@@ -74,6 +74,7 @@ const REPARTO_CALORICO: Record<TipoComida, number> = {
 };
 
 type ComidaCatalogo = {
+  id: number;
   tipo_comida: TipoComida;
   nombre: string;
   ingredientes: string[];
@@ -84,6 +85,14 @@ type ComidaCatalogo = {
   tags_dieta: string[];
   preparacion: string;
 };
+
+/**
+ * Opción A: ventana de semanas dentro de la que no se debe repetir una
+ * comida ya servida en la misma franja al mismo cliente. 4 semanas es el
+ * balance elegido entre variedad real y no agotar catálogos pequeños
+ * (ej. cena/snack, con solo 7 comidas cada uno).
+ */
+const VENTANA_SEMANAS_HISTORIAL = 4;
 
 export type AlternativaComida = {
   nombre: string;
@@ -135,13 +144,28 @@ export async function seleccionarComidas(
 ): Promise<PlanComidas> {
   const comidas: ComidaSeleccionada[] = [];
 
+  // Si se regenera la misma semana, reemplaza su historial en vez de
+  // acumular filas duplicadas (una regeneración no cuenta como una semana
+  // nueva a efectos de "qué se ha servido ya").
+  const { error: borrarHistorialError } = await supabase
+    .from("historial_comidas")
+    .delete()
+    .eq("cliente_id", clienteId)
+    .eq("semana_numero", semanaNumero);
+
+  if (borrarHistorialError) {
+    throw new Error(
+      `Error limpiando el historial de comidas de esta semana: ${borrarHistorialError.message}`
+    );
+  }
+
   for (const tipoComida of ORDEN_FRANJAS) {
     const objetivoFranja = objetivoCalorico * REPARTO_CALORICO[tipoComida];
 
     let query = supabase
       .from("comidas")
       .select(
-        "tipo_comida, nombre, ingredientes, calorias, proteinas_g, carbohidratos_g, grasas_g, tags_dieta, preparacion"
+        "id, tipo_comida, nombre, ingredientes, calorias, proteinas_g, carbohidratos_g, grasas_g, tags_dieta, preparacion"
       )
       .eq("tipo_comida", tipoComida)
       .eq("activo", true);
@@ -184,24 +208,76 @@ export async function seleccionarComidas(
       }
     }
 
-    // Rotación determinista: en vez de fijar siempre la única mejor opción,
-    // rota entre todas las candidatas igual de buenas (dentro del mismo
-    // margen calórico que ya se usa para las alternativas), eligiendo según
-    // cliente + semana + franja. Mantiene intacta la precisión calórica de
-    // sesión 74 porque nunca sale del margen aceptable.
+    // Opción B: en vez de fijar siempre la única mejor opción, rota entre
+    // todas las candidatas igual de buenas (dentro del mismo margen calórico
+    // que ya se usa para las alternativas). Mantiene intacta la precisión
+    // calórica de sesión 74 porque nunca sale del margen aceptable.
     const margenRotacion = 0.1;
-    const elegibles = candidatas
-      .filter(
-        (c) =>
-          Math.abs(c.calorias - mejorCandidata.calorias) <=
-          mejorCandidata.calorias * margenRotacion
-      )
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const elegiblesPorMargen = candidatas.filter(
+      (c) =>
+        Math.abs(c.calorias - mejorCandidata.calorias) <=
+        mejorCandidata.calorias * margenRotacion
+    );
 
+    // Opción A: excluir del pool lo servido en esta franja a este cliente
+    // dentro de la ventana de no-repetición.
+    const { data: historialData, error: historialError } = await supabase
+      .from("historial_comidas")
+      .select("comida_id, semana_numero")
+      .eq("cliente_id", clienteId)
+      .eq("franja", tipoComida)
+      .lt("semana_numero", semanaNumero)
+      .gte("semana_numero", semanaNumero - VENTANA_SEMANAS_HISTORIAL);
+
+    if (historialError) {
+      throw new Error(
+        `Error consultando el historial de comidas (${tipoComida}): ${historialError.message}`
+      );
+    }
+
+    const historial = (historialData ?? []) as { comida_id: number; semana_numero: number }[];
+    const usadosRecientes = new Set(historial.map((h) => h.comida_id));
+    const sinRepetir = elegiblesPorMargen.filter((c) => !usadosRecientes.has(c.id));
+
+    let poolRotacion = sinRepetir;
+    if (poolRotacion.length === 0) {
+      // Fallback (a): catálogo agotado dentro de la ventana (caso conocido
+      // de franjas con pocas opciones, ej. cena/snack). No rompe la
+      // generación: repite la que se sirvió hace más tiempo dentro de la
+      // ventana, no toca el margen calórico ya validado.
+      const ultimaVezPorComida = new Map<number, number>();
+      for (const h of historial) {
+        const actual = ultimaVezPorComida.get(h.comida_id);
+        if (actual === undefined || h.semana_numero > actual) {
+          ultimaVezPorComida.set(h.comida_id, h.semana_numero);
+        }
+      }
+      const masAntigua = Math.min(
+        ...elegiblesPorMargen.map((c) => ultimaVezPorComida.get(c.id) ?? -Infinity)
+      );
+      poolRotacion = elegiblesPorMargen.filter(
+        (c) => (ultimaVezPorComida.get(c.id) ?? -Infinity) === masAntigua
+      );
+    }
+
+    const elegibles = [...poolRotacion].sort((a, b) => a.nombre.localeCompare(b.nombre));
     const indice =
       hashDeterminista(`${clienteId}-${semanaNumero}-${tipoComida}`) % elegibles.length;
     const elegida = elegibles[indice];
     mejorDiferencia = Math.abs(elegida.calorias - objetivoFranja);
+
+    const { error: guardarHistorialError } = await supabase.from("historial_comidas").insert({
+      cliente_id: clienteId,
+      semana_numero: semanaNumero,
+      franja: tipoComida,
+      comida_id: elegida.id,
+    });
+
+    if (guardarHistorialError) {
+      throw new Error(
+        `Error guardando el historial de comidas (${tipoComida}): ${guardarHistorialError.message}`
+      );
+    }
 
     const resto = candidatas.filter((c) => c !== elegida);
     const dentroDeMargen = (margen: number) =>
