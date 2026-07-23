@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Cliente, PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-types'
 import { youtubeSearchUrl } from '@/lib/youtube'
 import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
+import { planNutricionTieneContenido, planEntrenamientoTieneContenido } from '@/lib/plan-vacio'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -25,7 +26,13 @@ export default async function PlanPage({ params }: Props) {
   const nutricion = c.plan_nutricion as PlanNutricion | null
   const entrenamiento = c.plan_entrenamiento as PlanEntrenamiento | null
 
-  const sinPlan = !nutricion && !entrenamiento && !c.nota_profesional
+  // El esqueleto por defecto del formulario manual no es NULL (tiene
+  // "comidas"/"sesiones" con forma pero sin contenido real) — hay que
+  // comprobar el contenido, no solo si el campo existe.
+  const nutricionOk = planNutricionTieneContenido(nutricion)
+  const entrenamientoOk = planEntrenamientoTieneContenido(entrenamiento)
+
+  const sinPlan = !nutricionOk && !entrenamientoOk && !c.nota_profesional
 
   return (
     <main
@@ -91,7 +98,7 @@ export default async function PlanPage({ params }: Props) {
             )}
 
             {/* Nutrición */}
-            {nutricion && (
+            {nutricionOk && nutricion && (
               <Section titulo="Plan de nutrición">
                 {nutricion.calorias_objetivo && (
                   <p className="text-sm text-indigo-300 font-medium mb-4">
@@ -171,7 +178,7 @@ export default async function PlanPage({ params }: Props) {
             )}
 
             {/* Entrenamiento */}
-            {entrenamiento && (
+            {entrenamientoOk && entrenamiento && (
               <Section titulo="Plan de entrenamiento">
                 <div className="space-y-4">
                   {entrenamiento.sesiones.map((sesion, si) => (

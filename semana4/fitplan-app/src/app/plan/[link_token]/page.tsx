@@ -5,6 +5,7 @@ import BotonDescarga from '@/components/BotonDescarga'
 import { youtubeSearchUrl } from '@/lib/youtube'
 import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
 import type { AlternativaComida } from '@/lib/supabase-types'
+import { planNutricionTieneContenido, planEntrenamientoTieneContenido } from '@/lib/plan-vacio'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,6 +73,16 @@ export default async function PlanCliente({ params }: Props) {
   const planNutricion = cliente.plan_nutricion as PlanNutricion | null
   const planEntrenamiento = cliente.plan_entrenamiento as PlanEntrenamiento | null
 
+  // El esqueleto por defecto del formulario manual no es NULL (tiene
+  // "comidas"/"sesiones" con forma pero sin contenido real) — hay que
+  // comprobar el contenido, no solo si el campo existe.
+  const nutricionOk = planNutricionTieneContenido(planNutricion)
+  const entrenamientoOk = planEntrenamientoTieneContenido(planEntrenamiento)
+
+  const tieneVideo = cliente.video_url && cliente.video_status === 'completado'
+  const sinNadaTodavia =
+    !tieneVideo && !cliente.audio_url && !nutricionOk && !entrenamientoOk && !cliente.nota_profesional
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div style={{ backgroundColor: colorPrincipal }} className="text-white">
@@ -111,7 +122,15 @@ export default async function PlanCliente({ params }: Props) {
           </section>
         )}
 
-        {planNutricion && (
+        {sinNadaTodavia && (
+          <section className="bg-white rounded-2xl shadow-sm p-5 text-center">
+            <p className="text-sm text-gray-500">
+              Tu profesional todavía está preparando tu plan. Vuelve a comprobar en breve.
+            </p>
+          </section>
+        )}
+
+        {nutricionOk && planNutricion && (
           <section className="bg-white rounded-2xl shadow-sm p-5">
             <h2 className="text-base font-bold text-gray-900 mb-1">🥗 Nutrición</h2>
             {planNutricion.calorias_objetivo && (
@@ -172,7 +191,7 @@ export default async function PlanCliente({ params }: Props) {
           </section>
         )}
 
-        {planEntrenamiento && (
+        {entrenamientoOk && planEntrenamiento && (
           <section className="bg-white rounded-2xl shadow-sm p-5">
             <h2 className="text-base font-bold text-gray-900 mb-4">🏋️ Entrenamiento</h2>
 

@@ -12,6 +12,7 @@ import BotonEnviarPlan from '@/components/BotonEnviarPlan'
 import BotonRecordatorio from '@/components/BotonRecordatorio'
 import TarjetaCliente, { necesitaRecordatorio } from '@/components/TarjetaCliente'
 import type { PlanNutricion, PlanEntrenamiento, PlanEstado } from '@/lib/supabase-types'
+import { planNutricionTieneContenido, planEntrenamientoTieneContenido } from '@/lib/plan-vacio'
 
 type Cliente = {
   id: number
@@ -61,6 +62,7 @@ export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteEditando, setClienteEditando] = useState<number | null>(null)
   const [exitoId, setExitoId] = useState<number | null>(null)
+  const [errorAprobar, setErrorAprobar] = useState<{ id: number; mensaje: string } | null>(null)
   const [planVersion, setPlanVersion] = useState<Record<number, number>>({})
   const [vista, setVista] = useState<'activos' | 'archivados'>('activos')
   const [heygenAddon, setHeygenAddon] = useState(false)
@@ -135,6 +137,24 @@ export default function Clientes() {
   }
 
   const handleAprobar = async (clienteId: number) => {
+    setErrorAprobar(null)
+
+    const cliente = clientes.find((c) => c.id === clienteId)
+    const nutricionOk = planNutricionTieneContenido(cliente?.plan_nutricion)
+    const entrenamientoOk = planEntrenamientoTieneContenido(cliente?.plan_entrenamiento)
+
+    if (!nutricionOk || !entrenamientoOk) {
+      const faltantes = [
+        !nutricionOk && 'nutrición',
+        !entrenamientoOk && 'entrenamiento',
+      ].filter(Boolean)
+      setErrorAprobar({
+        id: clienteId,
+        mensaje: `No puedes aprobar un plan vacío — falta contenido real de ${faltantes.join(' y ')}. Genera el plan con IA o rellena al menos una comida/ejercicio antes de aprobar.`,
+      })
+      return
+    }
+
     const supabase = createClient()
     await supabase
       .from('clientes')
@@ -341,6 +361,13 @@ export default function Clientes() {
                   {exitoId === cliente.id && (
                     <p className="mt-3 text-sm font-medium text-green-400">
                       Plan guardado ✓
+                    </p>
+                  )}
+
+                  {/* Error al intentar aprobar un plan vacío */}
+                  {errorAprobar?.id === cliente.id && (
+                    <p className="mt-3 text-sm font-medium text-red-400">
+                      {errorAprobar.mensaje}
                     </p>
                   )}
 
