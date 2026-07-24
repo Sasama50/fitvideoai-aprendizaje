@@ -6,6 +6,9 @@ import { youtubeSearchUrl } from '@/lib/youtube'
 import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
 import type { AlternativaComida } from '@/lib/supabase-types'
 import { planNutricionTieneContenido, planEntrenamientoTieneContenido } from '@/lib/plan-vacio'
+import { detectarTerminosEnTextos } from '@/lib/detectar-terminos'
+import { GLOSARIO_INGREDIENTES } from '@/lib/glosario-ingredientes'
+import TextoConGlosario from '@/components/TextoConGlosario'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -83,6 +86,17 @@ export default async function PlanCliente({ params }: Props) {
   const sinNadaTodavia =
     !tieneVideo && !cliente.audio_url && !nutricionOk && !entrenamientoOk && !cliente.nota_profesional
 
+  const terminosGlosario = nutricionOk
+    ? detectarTerminosEnTextos(
+        (planNutricion?.comidas ?? []).flatMap((c) => [
+          c.nombre,
+          c.ingredientes?.join(' '),
+          c.preparacion,
+          ...(c.alternativas?.map((alt) => alt.nombre) ?? []),
+        ])
+      )
+    : []
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div style={{ backgroundColor: colorPrincipal }} className="text-white">
@@ -152,26 +166,31 @@ export default async function PlanCliente({ params }: Props) {
                         className="border-l-4 pl-4 py-1"
                         style={{ borderColor: colorPrincipal }}
                       >
-                        <p className="font-semibold text-gray-800 text-sm">{comida.nombre}</p>
+                        <p className="font-semibold text-gray-800 text-sm">
+                          <TextoConGlosario texto={comida.nombre} />
+                        </p>
                         {comida.calorias && (
                           <p className="text-xs text-gray-400">{comida.calorias} kcal</p>
                         )}
                         {comida.ingredientes?.length > 0 && (
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {comida.ingredientes.join(' · ')}
+                            <TextoConGlosario texto={comida.ingredientes.join(' · ')} />
                           </p>
                         )}
                         {comida.preparacion && (
                           <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                            {comida.preparacion}
+                            <TextoConGlosario texto={comida.preparacion} />
                           </p>
                         )}
                         {comida.alternativas && comida.alternativas.length > 0 && (
                           <p className="text-xs text-gray-400 mt-2">
                             <span className="font-medium text-gray-500">Alternativas:</span>{' '}
-                            {comida.alternativas
-                              .map((alt) => `${alt.nombre} (${alt.calorias} kcal)`)
-                              .join(' · ')}
+                            {comida.alternativas.map((alt, i) => (
+                              <span key={i}>
+                                <TextoConGlosario texto={alt.nombre} /> ({alt.calorias} kcal)
+                                {i < comida.alternativas!.length - 1 ? ' · ' : ''}
+                              </span>
+                            ))}
                           </p>
                         )}
                       </div>
@@ -242,6 +261,22 @@ export default async function PlanCliente({ params }: Props) {
             <p className="text-sm text-amber-900 leading-relaxed">
               {cliente.nota_profesional}
             </p>
+          </section>
+        )}
+
+        {terminosGlosario.length > 0 && (
+          <section className="bg-white rounded-2xl shadow-sm p-5">
+            <h2 className="text-base font-bold text-gray-900 mb-3">¿Qué es cada cosa?</h2>
+            <dl className="space-y-3">
+              {terminosGlosario.map((clave) => (
+                <div key={clave}>
+                  <dt className="text-sm font-semibold text-gray-800 capitalize">{clave}</dt>
+                  <dd className="text-xs text-gray-500 leading-relaxed">
+                    {GLOSARIO_INGREDIENTES[clave]}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </section>
         )}
 

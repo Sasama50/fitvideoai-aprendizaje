@@ -5,6 +5,9 @@ import type { Cliente, PlanNutricion, PlanEntrenamiento } from '@/lib/supabase-t
 import { youtubeSearchUrl } from '@/lib/youtube'
 import { agruparPorTipoComida } from '@/lib/seleccion-comidas'
 import { planNutricionTieneContenido, planEntrenamientoTieneContenido } from '@/lib/plan-vacio'
+import { detectarTerminosEnTextos } from '@/lib/detectar-terminos'
+import { GLOSARIO_INGREDIENTES } from '@/lib/glosario-ingredientes'
+import TextoConGlosario from '@/components/TextoConGlosario'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -33,6 +36,17 @@ export default async function PlanPage({ params }: Props) {
   const entrenamientoOk = planEntrenamientoTieneContenido(entrenamiento)
 
   const sinPlan = !nutricionOk && !entrenamientoOk && !c.nota_profesional
+
+  const terminosGlosario = nutricionOk
+    ? detectarTerminosEnTextos(
+        (nutricion?.comidas ?? []).flatMap((comida) => [
+          comida.nombre,
+          comida.ingredientes?.join(' '),
+          comida.preparacion,
+          ...(comida.alternativas?.map((alt) => alt.nombre) ?? []),
+        ])
+      )
+    : []
 
   return (
     <main
@@ -121,7 +135,7 @@ export default async function PlanPage({ params }: Props) {
                           >
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="text-white font-semibold text-sm">
-                                {comida.nombre}
+                                <TextoConGlosario texto={comida.nombre} />
                               </h4>
                               {(comida.calorias ?? comida.calorias_aprox) && (
                                 <span className="text-xs text-indigo-300">
@@ -134,22 +148,25 @@ export default async function PlanPage({ params }: Props) {
                                 {comida.ingredientes.map((ing, j) => (
                                   <li key={j} className="text-gray-300 text-sm flex items-start gap-2">
                                     <span className="text-indigo-400 mt-0.5 shrink-0">•</span>
-                                    {ing}
+                                    <TextoConGlosario texto={ing} />
                                   </li>
                                 ))}
                               </ul>
                             )}
                             {comida.preparacion && (
                               <p className="text-gray-400 text-xs mt-2 leading-relaxed">
-                                {comida.preparacion}
+                                <TextoConGlosario texto={comida.preparacion} />
                               </p>
                             )}
                             {comida.alternativas && comida.alternativas.length > 0 && (
                               <p className="text-xs text-gray-400 mt-2">
                                 <span className="font-medium text-gray-300">Alternativas:</span>{' '}
-                                {comida.alternativas
-                                  .map((alt) => `${alt.nombre} (${alt.calorias} kcal)`)
-                                  .join(' · ')}
+                                {comida.alternativas.map((alt, i) => (
+                                  <span key={i}>
+                                    <TextoConGlosario texto={alt.nombre} /> ({alt.calorias} kcal)
+                                    {i < comida.alternativas!.length - 1 ? ' · ' : ''}
+                                  </span>
+                                ))}
                               </p>
                             )}
                           </div>
@@ -219,6 +236,22 @@ export default async function PlanPage({ params }: Props) {
                     </div>
                   ))}
                 </div>
+              </Section>
+            )}
+
+            {/* Glosario */}
+            {terminosGlosario.length > 0 && (
+              <Section titulo="¿Qué es cada cosa?">
+                <dl className="space-y-3">
+                  {terminosGlosario.map((clave) => (
+                    <div key={clave}>
+                      <dt className="text-sm font-semibold text-white capitalize">{clave}</dt>
+                      <dd className="text-xs text-gray-400 leading-relaxed">
+                        {GLOSARIO_INGREDIENTES[clave]}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </Section>
             )}
           </div>
