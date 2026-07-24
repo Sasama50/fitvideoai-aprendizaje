@@ -50,12 +50,26 @@ const etiquetasEstado: Record<PlanEstado, string> = {
   aprobado: 'aprobado',
 }
 
+const etiquetasFiltroEstado: Record<'todos' | PlanEstado, string> = {
+  todos: 'Todos',
+  aprobado: 'Aprobado',
+  borrador: 'Pendiente',
+  sin_generar: 'Sin generar',
+}
+
 function formatearFecha(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
+}
+
+function normalizar(texto: string) {
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
 }
 
 export default function Clientes() {
@@ -67,11 +81,26 @@ export default function Clientes() {
   const [vista, setVista] = useState<'activos' | 'archivados'>('activos')
   const [heygenAddon, setHeygenAddon] = useState(false)
   const [heygenAvatarStatus, setHeygenAvatarStatus] = useState<string | null>(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | PlanEstado>('todos')
+  const [expandidos, setExpandidos] = useState<Set<number>>(new Set())
 
   const actualizarCliente = (clienteId: number, cambios: Partial<Cliente>) => {
     setClientes((prev) =>
       prev.map((c) => (c.id === clienteId ? { ...c, ...cambios } : c))
     )
+  }
+
+  const toggleExpandido = (clienteId: number) => {
+    setExpandidos((prev) => {
+      const next = new Set(prev)
+      if (next.has(clienteId)) {
+        next.delete(clienteId)
+      } else {
+        next.add(clienteId)
+      }
+      return next
+    })
   }
 
   useEffect(() => {
@@ -187,9 +216,23 @@ export default function Clientes() {
     cambiarActivo(clienteId, true)
   }
 
-  const clientesVisibles = clientes.filter((c) =>
+  const clientesVista = clientes.filter((c) =>
     vista === 'activos' ? c.activo : !c.activo
   )
+
+  const busquedaNormalizada = normalizar(busqueda.trim())
+
+  const clientesVisibles = clientesVista
+    .filter((c) =>
+      filtroEstado === 'todos' ? true : (c.plan_estado ?? 'sin_generar') === filtroEstado
+    )
+    .filter((c) => {
+      if (!busquedaNormalizada) return true
+      return (
+        normalizar(c.nombre ?? '').includes(busquedaNormalizada) ||
+        normalizar(c.email ?? '').includes(busquedaNormalizada)
+      )
+    })
 
   return (
     <main
@@ -239,7 +282,35 @@ export default function Clientes() {
           </div>
         </div>
 
-        {clientesVisibles.length === 0 ? (
+        <div className="mb-4">
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre o email..."
+            className="w-full text-sm px-4 py-2 rounded-lg text-white placeholder-gray-500 outline-none border border-transparent focus:border-indigo-500 transition"
+            style={{ backgroundColor: '#0f3460' }}
+          />
+        </div>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {(['todos', 'aprobado', 'borrador', 'sin_generar'] as const).map((valor) => (
+            <button
+              key={valor}
+              onClick={() => setFiltroEstado(valor)}
+              className="text-xs font-medium px-3 py-1 rounded-full transition"
+              style={
+                filtroEstado === valor
+                  ? { backgroundColor: '#6366f1', color: '#fff' }
+                  : { backgroundColor: '#0f3460', color: '#9ca3af' }
+              }
+            >
+              {etiquetasFiltroEstado[valor]}
+            </button>
+          ))}
+        </div>
+
+        {clientesVista.length === 0 ? (
           <div
             className="rounded-2xl p-8 shadow-2xl text-center"
             style={{ backgroundColor: '#16213e' }}
@@ -250,192 +321,228 @@ export default function Clientes() {
                 : 'Todavía no hay clientes registrados'}
             </p>
           </div>
+        ) : clientesVisibles.length === 0 ? (
+          <div
+            className="rounded-2xl p-8 shadow-2xl text-center"
+            style={{ backgroundColor: '#16213e' }}
+          >
+            <p className="text-gray-400 text-sm">
+              No hay clientes que coincidan con la búsqueda.
+            </p>
+          </div>
         ) : (
           <div className="space-y-4">
-            {clientesVisibles.map((cliente) => (
+            {clientesVisibles.map((cliente) => {
+              const expandido = expandidos.has(cliente.id)
+              return (
               <div key={cliente.id}>
                 {/* Tarjeta */}
                 <div
-                  className="rounded-2xl p-6 shadow-2xl"
+                  className="rounded-2xl shadow-2xl overflow-hidden"
                   style={{ backgroundColor: '#16213e' }}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-white truncate">
-                        {cliente.nombre}
-                      </h3>
-                      <p className="text-gray-300 text-sm mt-1 line-clamp-2">
-                        {cliente.objetivo}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span
-                        className="text-xs font-medium px-3 py-1 rounded-full"
-                        style={{ backgroundColor: '#0f3460', color: '#a5b4fc' }}
-                      >
-                        {etiquetasPlan[cliente.tipo_plan ?? ''] ?? cliente.tipo_plan}
-                      </span>
-                      <Link
-                        href={`/clientes/${cliente.id}/plan`}
-                        className="text-xs text-gray-400 hover:text-white transition"
-                        title="Ver plan"
-                      >
-                        Ver plan
-                      </Link>
-                      <Link
-                        href={`/clientes/${cliente.id}/editar`}
-                        className="text-xs text-gray-400 hover:text-white transition"
-                        title="Editar perfil del cliente"
-                      >
-                        Editar perfil
-                      </Link>
-                      <button
-                        onClick={() =>
-                          cliente.activo
-                            ? handleArchivar(cliente.id, cliente.nombre)
-                            : handleReactivar(cliente.id)
-                        }
-                        className="text-xs text-gray-400 hover:text-white transition"
-                        title={cliente.activo ? 'Archivar cliente' : 'Reactivar cliente'}
-                      >
-                        {cliente.activo ? 'Archivar' : 'Reactivar'}
-                      </button>
-                      <button
-                        onClick={() =>
-                          setClienteEditando(
-                            clienteEditando === cliente.id ? null : cliente.id
-                          )
-                        }
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition"
-                        title="Editar plan"
-                      >
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
+                  {/* Cabecera (siempre visible, clicable para expandir/colapsar) */}
+                  <div
+                    className="p-6 cursor-pointer"
+                    onClick={() => toggleExpandido(cliente.id)}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0 flex items-start gap-2">
+                        <span
+                          className="text-gray-500 mt-1 shrink-0 select-none"
+                          aria-hidden="true"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"
-                          />
-                        </svg>
-                        Editar plan
-                      </button>
+                          {expandido ? '▾' : '▸'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-white truncate">
+                            {cliente.nombre}
+                          </h3>
+                          <p className="text-gray-300 text-sm mt-1 truncate">
+                            {cliente.objetivo}
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className="flex items-center gap-3 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span
+                          className="text-xs font-medium px-3 py-1 rounded-full"
+                          style={{ backgroundColor: '#0f3460', color: '#a5b4fc' }}
+                        >
+                          {etiquetasPlan[cliente.tipo_plan ?? ''] ?? cliente.tipo_plan}
+                        </span>
+                        <Link
+                          href={`/clientes/${cliente.id}/plan`}
+                          className="text-xs text-gray-400 hover:text-white transition"
+                          title="Ver plan"
+                        >
+                          Ver plan
+                        </Link>
+                        <Link
+                          href={`/clientes/${cliente.id}/editar`}
+                          className="text-xs text-gray-400 hover:text-white transition"
+                          title="Editar perfil del cliente"
+                        >
+                          Editar perfil
+                        </Link>
+                        <button
+                          onClick={() =>
+                            cliente.activo
+                              ? handleArchivar(cliente.id, cliente.nombre)
+                              : handleReactivar(cliente.id)
+                          }
+                          className="text-xs text-gray-400 hover:text-white transition"
+                          title={cliente.activo ? 'Archivar cliente' : 'Reactivar cliente'}
+                        >
+                          {cliente.activo ? 'Archivar' : 'Reactivar'}
+                        </button>
+                        <button
+                          onClick={() =>
+                            setClienteEditando(
+                              clienteEditando === cliente.id ? null : cliente.id
+                            )
+                          }
+                          className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition"
+                          title="Editar plan"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"
+                            />
+                          </svg>
+                          Editar plan
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      className="flex items-center gap-2 mt-4 flex-wrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-gray-500 text-xs">
+                        {formatearFecha(cliente.created_at)}
+                      </p>
+                      <TarjetaCliente cliente={cliente} />
+                      <span
+                        className="text-xs font-medium px-3 py-1 rounded-full"
+                        style={{ backgroundColor: '#0f3460', color: '#facc15' }}
+                      >
+                        Plan: {etiquetasEstado[cliente.plan_estado ?? 'sin_generar']}
+                      </span>
+                      {!cliente.activo && (
+                        <span
+                          className="text-xs font-medium px-3 py-1 rounded-full"
+                          style={{ backgroundColor: '#3a1414', color: '#e74c3c' }}
+                        >
+                          Archivado
+                        </span>
+                      )}
+                      {(cliente.plan_estado ?? 'sin_generar') === 'borrador' && (
+                        <button
+                          onClick={() => handleAprobar(cliente.id)}
+                          className="text-xs font-semibold px-3 py-1 rounded-full transition"
+                          style={{ backgroundColor: '#16a34a', color: '#fff' }}
+                        >
+                          ✓ Aprobar plan
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-4 flex-wrap">
-                    <p className="text-gray-500 text-xs">
-                      {formatearFecha(cliente.created_at)}
-                    </p>
-                    <TarjetaCliente cliente={cliente} />
-                    <span
-                      className="text-xs font-medium px-3 py-1 rounded-full"
-                      style={{ backgroundColor: '#0f3460', color: '#facc15' }}
-                    >
-                      Plan: {etiquetasEstado[cliente.plan_estado ?? 'sin_generar']}
-                    </span>
-                    {!cliente.activo && (
-                      <span
-                        className="text-xs font-medium px-3 py-1 rounded-full"
-                        style={{ backgroundColor: '#3a1414', color: '#e74c3c' }}
-                      >
-                        Archivado
-                      </span>
-                    )}
-                    {(cliente.plan_estado ?? 'sin_generar') === 'borrador' && (
-                      <button
-                        onClick={() => handleAprobar(cliente.id)}
-                        className="text-xs font-semibold px-3 py-1 rounded-full transition"
-                        style={{ backgroundColor: '#16a34a', color: '#fff' }}
-                      >
-                        ✓ Aprobar plan
-                      </button>
-                    )}
-                  </div>
+                  {/* Detalle (colapsable) */}
+                  {expandido && (
+                    <div className="px-6 pb-6 pt-2 border-t border-gray-800">
+                      {/* Mensaje de éxito */}
+                      {exitoId === cliente.id && (
+                        <p className="mt-3 text-sm font-medium text-green-400">
+                          Plan guardado ✓
+                        </p>
+                      )}
 
-                  {/* Mensaje de éxito */}
-                  {exitoId === cliente.id && (
-                    <p className="mt-3 text-sm font-medium text-green-400">
-                      Plan guardado ✓
-                    </p>
+                      {/* Error al intentar aprobar un plan vacío */}
+                      {errorAprobar?.id === cliente.id && (
+                        <p className="mt-3 text-sm font-medium text-red-400">
+                          {errorAprobar.mensaje}
+                        </p>
+                      )}
+
+                      <GenerarGuionButton
+                        key={`guion-${cliente.id}-${cliente.guion ? 'y' : 'n'}`}
+                        clienteId={cliente.id}
+                        guionInicial={cliente.guion ?? null}
+                        bloqueado={(cliente.plan_estado ?? 'sin_generar') !== 'aprobado'}
+                        motivoBloqueo="Aprueba el plan antes de generar el guión."
+                        onGuionGenerado={(guion) => actualizarCliente(cliente.id, { guion })}
+                      />
+                      <GenerarVideoButton
+                        key={`video-${cliente.id}-${cliente.video_status ?? 'n'}`}
+                        clienteId={cliente.id}
+                        videoIdInicial={cliente.video_id ?? null}
+                        videoUrlInicial={cliente.video_url ?? null}
+                        videoStatusInicial={cliente.video_status ?? null}
+                        bloqueado={!heygenAddon || heygenAvatarStatus !== 'ready'}
+                        motivoBloqueo={
+                          !heygenAddon
+                            ? 'Añade el add-on de vídeo HeyGen (+€35/mes Pro, +€59/mes Studio) para generar el vídeo de bienvenida.'
+                            : heygenAvatarStatus === 'processing'
+                            ? 'Tu avatar todavía se está generando — vuelve a intentarlo en un rato.'
+                            : 'Completa el Paso 3 del onboarding para entrenar tu avatar antes de generar vídeos.'
+                        }
+                      />
+                      <BotonesAudio
+                        key={`audio-${cliente.id}-${cliente.audio_status ?? 'n'}`}
+                        clienteId={cliente.id}
+                        audioStatus={cliente.audio_status}
+                        audioUrl={cliente.audio_url}
+                        linkCliente={cliente.link_cliente}
+                        bloqueado={(cliente.plan_estado ?? 'sin_generar') !== 'aprobado' || !cliente.guion}
+                        motivoBloqueo={
+                          (cliente.plan_estado ?? 'sin_generar') !== 'aprobado'
+                            ? 'Aprueba el plan antes de generar el audio.'
+                            : 'Genera el guión primero.'
+                        }
+                        onAudioGenerado={(audioUrl, linkToken) =>
+                          actualizarCliente(cliente.id, {
+                            audio_url: audioUrl,
+                            audio_status: 'completado',
+                            link_cliente: linkToken,
+                          })
+                        }
+                      />
+                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        <BotonEnviarPlan
+                          clienteId={String(cliente.id)}
+                          nombreCliente={cliente.nombre ?? 'cliente'}
+                          email={cliente.email}
+                          yaEnviadoAntes={!!cliente.link_cliente}
+                          bloqueado={
+                            !cliente.activo ||
+                            (cliente.plan_estado ?? 'sin_generar') !== 'aprobado' ||
+                            !cliente.guion ||
+                            cliente.audio_status !== 'completado'
+                          }
+                          motivoBloqueo={
+                            !cliente.activo
+                              ? 'Cliente archivado — reactívalo para generar o enviar planes.'
+                              : 'Aprueba el plan y regenera el guión y el audio antes de enviar.'
+                          }
+                        />
+                        {necesitaRecordatorio(cliente) && (
+                          <BotonRecordatorio clienteId={String(cliente.id)} email={cliente.email} />
+                        )}
+                      </div>
+                    </div>
                   )}
-
-                  {/* Error al intentar aprobar un plan vacío */}
-                  {errorAprobar?.id === cliente.id && (
-                    <p className="mt-3 text-sm font-medium text-red-400">
-                      {errorAprobar.mensaje}
-                    </p>
-                  )}
-
-                  <GenerarGuionButton
-                    key={`guion-${cliente.id}-${cliente.guion ? 'y' : 'n'}`}
-                    clienteId={cliente.id}
-                    guionInicial={cliente.guion ?? null}
-                    bloqueado={(cliente.plan_estado ?? 'sin_generar') !== 'aprobado'}
-                    motivoBloqueo="Aprueba el plan antes de generar el guión."
-                    onGuionGenerado={(guion) => actualizarCliente(cliente.id, { guion })}
-                  />
-                  <GenerarVideoButton
-                    key={`video-${cliente.id}-${cliente.video_status ?? 'n'}`}
-                    clienteId={cliente.id}
-                    videoIdInicial={cliente.video_id ?? null}
-                    videoUrlInicial={cliente.video_url ?? null}
-                    videoStatusInicial={cliente.video_status ?? null}
-                    bloqueado={!heygenAddon || heygenAvatarStatus !== 'ready'}
-                    motivoBloqueo={
-                      !heygenAddon
-                        ? 'Añade el add-on de vídeo HeyGen (+€35/mes Pro, +€59/mes Studio) para generar el vídeo de bienvenida.'
-                        : heygenAvatarStatus === 'processing'
-                        ? 'Tu avatar todavía se está generando — vuelve a intentarlo en un rato.'
-                        : 'Completa el Paso 3 del onboarding para entrenar tu avatar antes de generar vídeos.'
-                    }
-                  />
-                  <BotonesAudio
-                    key={`audio-${cliente.id}-${cliente.audio_status ?? 'n'}`}
-                    clienteId={cliente.id}
-                    audioStatus={cliente.audio_status}
-                    audioUrl={cliente.audio_url}
-                    linkCliente={cliente.link_cliente}
-                    bloqueado={(cliente.plan_estado ?? 'sin_generar') !== 'aprobado' || !cliente.guion}
-                    motivoBloqueo={
-                      (cliente.plan_estado ?? 'sin_generar') !== 'aprobado'
-                        ? 'Aprueba el plan antes de generar el audio.'
-                        : 'Genera el guión primero.'
-                    }
-                    onAudioGenerado={(audioUrl, linkToken) =>
-                      actualizarCliente(cliente.id, {
-                        audio_url: audioUrl,
-                        audio_status: 'completado',
-                        link_cliente: linkToken,
-                      })
-                    }
-                  />
-                  <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    <BotonEnviarPlan
-                      clienteId={String(cliente.id)}
-                      nombreCliente={cliente.nombre ?? 'cliente'}
-                      email={cliente.email}
-                      yaEnviadoAntes={!!cliente.link_cliente}
-                      bloqueado={
-                        !cliente.activo ||
-                        (cliente.plan_estado ?? 'sin_generar') !== 'aprobado' ||
-                        !cliente.guion ||
-                        cliente.audio_status !== 'completado'
-                      }
-                      motivoBloqueo={
-                        !cliente.activo
-                          ? 'Cliente archivado — reactívalo para generar o enviar planes.'
-                          : 'Aprueba el plan y regenera el guión y el audio antes de enviar.'
-                      }
-                    />
-                    {necesitaRecordatorio(cliente) && (
-                      <BotonRecordatorio clienteId={String(cliente.id)} email={cliente.email} />
-                    )}
-                  </div>
                 </div>
 
                 {/* Panel FormularioPlan expandible */}
@@ -481,7 +588,8 @@ export default function Clientes() {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

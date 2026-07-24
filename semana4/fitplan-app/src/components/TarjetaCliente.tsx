@@ -19,7 +19,7 @@ export function calcularEstado(cliente: ClienteEstado) {
     return {
       color: '#3ecf8e',
       bg: '#0f2a1f',
-      texto: `Vio el ${fecha} · ${cliente.link_visto_count} vez${cliente.link_visto_count === 1 ? '' : 'es'}`,
+      texto: `Vio el ${fecha} · ${cliente.link_visto_count} ${cliente.link_visto_count === 1 ? 'vez' : 'veces'}`,
     }
   }
   const dias = Math.floor((Date.now() - new Date(cliente.created_at).getTime()) / 86400000)
