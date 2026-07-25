@@ -74,7 +74,9 @@ export async function POST(request: Request) {
 
     const { data: profesional, error: profesionalError } = await supabase
       .from("profesionales")
-      .select("id, nombre, heygen_addon, heygen_avatar_id, heygen_avatar_status")
+      .select(
+        "id, nombre, heygen_addon, heygen_avatar_id, heygen_avatar_status, heygen_background_url"
+      )
       .eq("user_id", user.id)
       .single();
 
@@ -168,6 +170,18 @@ export async function POST(request: Request) {
 
     // 2. Crear el vídeo con el avatar real del profesional. Sin voice_id: HeyGen
     // usa la voz propia entrenada del avatar (clonada del mismo vídeo de origen).
+    // Si el profesional tiene un fondo configurado, se recorta el fondo original
+    // de la grabación (remove_background) y se sustituye por esa imagen; si no,
+    // se mantiene el comportamiento actual (fondo original de la grabación).
+    const fondoPersonalizado = profesional.heygen_background_url
+      ? {
+          remove_background: true,
+          background: { type: "image", url: profesional.heygen_background_url },
+        }
+      : {
+          background: { type: "color", value: "#1a1a2e" },
+        };
+
     const heygenRes = await fetch("https://api.heygen.com/v3/videos", {
       method: "POST",
       headers: {
@@ -179,7 +193,7 @@ export async function POST(request: Request) {
         avatar_id: lookId,
         script: mensajeBienvenida,
         resolution: "720p",
-        background: { type: "color", value: "#1a1a2e" },
+        ...fondoPersonalizado,
       }),
     });
 
