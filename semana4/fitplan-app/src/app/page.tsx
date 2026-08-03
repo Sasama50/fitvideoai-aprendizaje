@@ -7,11 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import FormularioIntakeCliente, {
   type ClienteIntakeValues,
 } from "@/components/FormularioIntakeCliente";
+import type { PlanNutricion } from "@/lib/supabase-types";
 
 export default function Home() {
   const router = useRouter();
   const [planConfirmado, setPlanConfirmado] = useState<ClienteIntakeValues | null>(null);
-  const [guardado, setGuardado] = useState(false);
+  const [clienteId, setClienteId] = useState<number | null>(null);
+  const [generandoPlan, setGenerandoPlan] = useState(false);
+  const [planGenerado, setPlanGenerado] = useState<PlanNutricion | null>(null);
+  const [errorGeneracion, setErrorGeneracion] = useState("");
   const [cargandoPago, setCargandoPago] = useState(false);
   const [errorCliente, setErrorCliente] = useState("");
   const [limiteAlcanzado, setLimiteAlcanzado] = useState<{
@@ -44,6 +48,8 @@ export default function Home() {
   const handleSubmit = async (valores: ClienteIntakeValues) => {
     setErrorCliente("");
     setLimiteAlcanzado(null);
+    setPlanGenerado(null);
+    setErrorGeneracion("");
 
     const res = await fetch("/api/clientes", {
       method: "POST",
@@ -86,7 +92,29 @@ export default function Home() {
     }
 
     setPlanConfirmado(valores);
-    setGuardado(true);
+    setClienteId(json.cliente.id);
+
+    setGenerandoPlan(true);
+    try {
+      const resPlan = await fetch("/api/generar-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: json.cliente.id }),
+      });
+      const jsonPlan = await resPlan.json();
+
+      if (!resPlan.ok) {
+        setErrorGeneracion(jsonPlan.error || "No se pudo generar el plan automáticamente.");
+      } else {
+        setPlanGenerado(jsonPlan.plan_nutricion);
+      }
+    } catch (err) {
+      setErrorGeneracion(
+        err instanceof Error ? err.message : "No se pudo generar el plan automáticamente."
+      );
+    } finally {
+      setGenerandoPlan(false);
+    }
   };
 
   const etiquetasPlan: Record<ClienteIntakeValues["tipoPlan"], string> = {
@@ -175,7 +203,7 @@ export default function Home() {
             style={{ backgroundColor: "#14532d" }}
           >
             <h2 className="text-xl font-semibold text-white mb-4">
-              Plan generado para {planConfirmado.nombre}
+              Cliente {planConfirmado.nombre} creado ✓
             </h2>
             <ul className="space-y-3 text-sm text-green-100">
               <li>
@@ -195,10 +223,34 @@ export default function Home() {
                 {etiquetasPlan[planConfirmado.tipoPlan]}
               </li>
             </ul>
-            {guardado && (
-              <p className="mt-4 text-sm font-medium text-green-300">
-                Guardado en la base de datos ✓
+
+            {generandoPlan && (
+              <p className="mt-4 text-sm text-green-200">
+                Generando el plan con IA…
               </p>
+            )}
+
+            {!generandoPlan && planGenerado && (
+              <p className="mt-4 text-sm font-medium text-green-300">
+                Plan generado con IA ✓ — objetivo calórico:{" "}
+                {planGenerado.calorias_objetivo} kcal/día
+              </p>
+            )}
+
+            {!generandoPlan && errorGeneracion && (
+              <p className="mt-4 text-sm text-amber-300">
+                No se pudo generar el plan automáticamente ({errorGeneracion}). Puedes
+                completarlo desde la ficha del cliente.
+              </p>
+            )}
+
+            {clienteId && (
+              <Link
+                href={`/clientes/${clienteId}/editar`}
+                className="inline-block mt-4 text-sm font-medium text-green-300 hover:underline"
+              >
+                Ver ficha del cliente →
+              </Link>
             )}
           </div>
         )}
