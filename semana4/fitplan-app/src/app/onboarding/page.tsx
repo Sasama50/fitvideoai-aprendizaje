@@ -2,12 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Paso = 1 | 2 | 3 | 4;
 type AvatarStatus = "processing" | "ready" | "failed" | null;
 
+const MENSAJE_SESION_CADUCADA = "Tu sesión ha caducado, vuelve a iniciar sesión.";
+
+function esErrorDeSesion(mensaje: string) {
+  return /row-level security|jwt|permission denied/i.test(mensaje);
+}
+
 export default function OnboardingPage() {
+  const router = useRouter();
   const [paso, setPaso] = useState<Paso>(1);
   const [plan, setPlan] = useState<string | null>(null);
 
@@ -38,15 +46,18 @@ export default function OnboardingPage() {
     const cargarPerfil = async () => {
       const supabase = createClient();
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (!user) return;
+      if (!session) {
+        router.replace("/login");
+        return;
+      }
 
       const { data: profesional } = await supabase
         .from("profesionales")
         .select("plan, heygen_avatar_status")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .maybeSingle();
 
       setPlan(profesional?.plan ?? null);
@@ -54,7 +65,7 @@ export default function OnboardingPage() {
     };
 
     cargarPerfil();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (paso !== 3 || avatarStatus !== "processing") return;
@@ -86,13 +97,16 @@ export default function OnboardingPage() {
     try {
       const supabase = createClient();
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (!user) {
-        setErrorMarca("No hay sesión activa. Inicia sesión de nuevo.");
+      if (!session) {
+        setErrorMarca(MENSAJE_SESION_CADUCADA);
+        router.replace("/login");
         return;
       }
+
+      const user = session.user;
 
       let logoUrl: string | undefined;
 
@@ -106,7 +120,11 @@ export default function OnboardingPage() {
           });
 
         if (uploadError) {
-          setErrorMarca(`Error al subir el logo: ${uploadError.message}`);
+          setErrorMarca(
+            esErrorDeSesion(uploadError.message)
+              ? MENSAJE_SESION_CADUCADA
+              : `Error al subir el logo: ${uploadError.message}`
+          );
           return;
         }
 
@@ -150,13 +168,16 @@ export default function OnboardingPage() {
     try {
       const supabase = createClient();
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (!user) {
-        setErrorVoz("No hay sesión activa. Inicia sesión de nuevo.");
+      if (!session) {
+        setErrorVoz(MENSAJE_SESION_CADUCADA);
+        router.replace("/login");
         return;
       }
+
+      const user = session.user;
 
       const formData = new FormData();
       formData.append("audio", audioFile);
@@ -213,13 +234,16 @@ export default function OnboardingPage() {
     try {
       const supabase = createClient();
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (!user) {
-        setErrorAvatar("No hay sesión activa. Inicia sesión de nuevo.");
+      if (!session) {
+        setErrorAvatar(MENSAJE_SESION_CADUCADA);
+        router.replace("/login");
         return;
       }
+
+      const user = session.user;
 
       const path = `${user.id}-${Date.now()}-${videoFile.name}`;
       const { error: uploadError } = await supabase.storage
@@ -230,7 +254,11 @@ export default function OnboardingPage() {
         });
 
       if (uploadError) {
-        setErrorAvatar(`Error al subir el vídeo: ${uploadError.message}`);
+        setErrorAvatar(
+          esErrorDeSesion(uploadError.message)
+            ? MENSAJE_SESION_CADUCADA
+            : `Error al subir el vídeo: ${uploadError.message}`
+        );
         return;
       }
 
