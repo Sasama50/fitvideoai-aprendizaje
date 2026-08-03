@@ -387,6 +387,16 @@ export default function OnboardingPage() {
                 >
                   {clonandoVoz ? "Clonando..." : "Clonar mi voz"}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaso(esStudio ? 3 : 4)}
+                  disabled={clonandoVoz}
+                  className="w-full py-3 rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 text-gray-300 disabled:opacity-50"
+                  style={{ backgroundColor: "transparent", border: "1px solid #2a2a4a" }}
+                >
+                  Omitir por ahora →
+                </button>
               </div>
             </>
           )}
@@ -500,7 +510,7 @@ export default function OnboardingPage() {
                   className="w-full py-3 rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95 text-gray-300"
                   style={{ backgroundColor: "transparent", border: "1px solid #2a2a4a" }}
                 >
-                  {avatarStatus === "ready" ? "Continuar" : "Continuar más tarde →"}
+                  {avatarStatus === "ready" ? "Continuar" : "Omitir por ahora →"}
                 </button>
               </div>
             </>
@@ -509,7 +519,7 @@ export default function OnboardingPage() {
           {paso === 4 && (
             <div className="text-center">
               <h2 className="text-xl font-semibold text-white mb-3">
-                ¡Todo listo! Tu marca y tu voz están configuradas.
+                ¡Todo listo! Ya puedes empezar a usar FitPlan AI.
               </h2>
               <Link
                 href="/"
