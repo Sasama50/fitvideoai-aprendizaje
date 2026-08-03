@@ -60,6 +60,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if ((cliente.plan_estado ?? 'sin_generar') !== 'aprobado') {
+      return NextResponse.json(
+        { error: 'Aprueba el plan antes de enviarlo.' },
+        { status: 400 }
+      )
+    }
+
     // 2. Generar link_token si no existe todavía
     let linkToken = cliente.link_cliente
     if (!linkToken) {
@@ -79,14 +86,20 @@ export async function POST(req: NextRequest) {
       : `Tu plan de esta semana de ${cliente.nombre_profesional || 'tu entrenador'}`
 
     const tieneVideo = cliente.video_status === 'completado' && !!cliente.video_url
+    const tieneAudio = cliente.audio_status === 'completado' && !!cliente.audio_url
+
+    const extra =
+      tieneVideo && tieneAudio
+        ? ', con vídeo y audio personalizados incluidos'
+        : tieneVideo
+          ? ', con vídeo personalizado incluido'
+          : tieneAudio
+            ? ', con audio personalizado incluido'
+            : ''
 
     const mensaje = notificarCambio
-      ? tieneVideo
-        ? 'Tu profesional ha actualizado tu plan de esta semana, con vídeo y audio personalizados incluidos.'
-        : 'Tu profesional ha actualizado tu plan de esta semana, con audio personalizado incluido.'
-      : tieneVideo
-        ? 'Tu plan de esta semana ya está listo, con vídeo y audio personalizados incluidos.'
-        : 'Tu plan de esta semana ya está listo, con audio personalizado incluido.'
+      ? `Tu profesional ha actualizado tu plan de esta semana${extra}.`
+      : `Tu plan de esta semana ya está listo${extra}.`
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,

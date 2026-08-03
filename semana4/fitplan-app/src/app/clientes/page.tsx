@@ -527,14 +527,12 @@ export default function Clientes() {
                           yaEnviadoAntes={!!cliente.link_cliente}
                           bloqueado={
                             !cliente.activo ||
-                            (cliente.plan_estado ?? 'sin_generar') !== 'aprobado' ||
-                            !cliente.guion ||
-                            cliente.audio_status !== 'completado'
+                            (cliente.plan_estado ?? 'sin_generar') !== 'aprobado'
                           }
                           motivoBloqueo={
                             !cliente.activo
                               ? 'Cliente archivado — reactívalo para generar o enviar planes.'
-                              : 'Aprueba el plan y regenera el guión y el audio antes de enviar.'
+                              : 'Aprueba el plan antes de enviarlo.'
                           }
                         />
                         {necesitaRecordatorio(cliente) && (
