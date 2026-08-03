@@ -117,6 +117,7 @@ export default function OnboardingPage() {
           .upload(path, logoFile, {
             contentType: logoFile.type,
             upsert: true,
+            headers: { Authorization: `Bearer ${session.access_token}` },
           });
 
         if (uploadError) {
@@ -251,6 +252,7 @@ export default function OnboardingPage() {
         .upload(path, videoFile, {
           contentType: videoFile.type,
           upsert: true,
+          headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
       if (uploadError) {
