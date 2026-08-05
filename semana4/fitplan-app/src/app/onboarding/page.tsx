@@ -111,26 +111,21 @@ export default function OnboardingPage() {
       let logoUrl: string | undefined;
 
       if (logoFile) {
-        const path = `${user.id}-${Date.now()}-${logoFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("logos")
-          .upload(path, logoFile, {
-            contentType: logoFile.type,
-            upsert: true,
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
+        const formData = new FormData();
+        formData.append("logo", logoFile);
 
-        if (uploadError) {
-          setErrorMarca(
-            esErrorDeSesion(uploadError.message)
-              ? MENSAJE_SESION_CADUCADA
-              : `Error al subir el logo: ${uploadError.message}`
-          );
+        const res = await fetch("/api/onboarding/subir-logo", {
+          method: "POST",
+          body: formData,
+        });
+        const json = await res.json();
+
+        if (!res.ok || !json.success) {
+          setErrorMarca(`Error al subir el logo: ${json.error || "No se pudo subir el logo."}`);
           return;
         }
 
-        const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path);
-        logoUrl = urlData.publicUrl;
+        logoUrl = json.logo_url;
       }
 
       const { error: upsertError } = await supabase.from("profesionales").upsert(
