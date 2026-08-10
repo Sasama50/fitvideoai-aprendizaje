@@ -101,17 +101,22 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ client_id: json.cliente.id }),
       });
-      const jsonPlan = await resPlan.json();
 
-      if (!resPlan.ok) {
-        setErrorGeneracion(jsonPlan.error || "No se pudo generar el plan automáticamente.");
+      let jsonPlan: { error?: string; plan_nutricion?: PlanNutricion } | null = null;
+      try {
+        jsonPlan = await resPlan.json();
+      } catch (parseErr) {
+        console.error("Respuesta no válida al generar el plan desde el alta:", parseErr);
+      }
+
+      if (!resPlan.ok || !jsonPlan) {
+        setErrorGeneracion(jsonPlan?.error || `error de servidor (${resPlan.status})`);
       } else {
-        setPlanGenerado(jsonPlan.plan_nutricion);
+        setPlanGenerado(jsonPlan.plan_nutricion ?? null);
       }
     } catch (err) {
-      setErrorGeneracion(
-        err instanceof Error ? err.message : "No se pudo generar el plan automáticamente."
-      );
+      console.error("Error de red generando el plan desde el alta:", err);
+      setErrorGeneracion(err instanceof Error ? err.message : "error de red");
     } finally {
       setGenerandoPlan(false);
     }
@@ -239,8 +244,9 @@ export default function Home() {
 
             {!generandoPlan && errorGeneracion && (
               <p className="mt-4 text-sm text-amber-300">
-                No se pudo generar el plan automáticamente ({errorGeneracion}). Puedes
-                completarlo desde la ficha del cliente.
+                El cliente se creó pero el plan no se pudo generar automáticamente (
+                {errorGeneracion}). Ábrelo en &quot;Editar plan&quot; y pulsa &quot;✨ Generar
+                borrador con IA&quot; para reintentarlo.
               </p>
             )}
 

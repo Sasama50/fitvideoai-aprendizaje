@@ -10,6 +10,11 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
+// La llamada a Claude + selección de comidas puede tardar bien pasados los
+// 10-15s por defecto de Vercel, sobre todo en cold start tras un deploy.
+// Margen holgado para no cortar la generación a mitad de respuesta.
+export const maxDuration = 60;
+
 const NOMBRES_METODO: Record<MetodoCalculo, string> = {
   mifflin_st_jeor: "Mifflin-St Jeor",
   harris_benedict: "Harris-Benedict",
@@ -47,8 +52,10 @@ function extraerJson(texto: string): PlanGenerado {
 }
 
 export async function POST(req: NextRequest) {
+  let clientIdParaLog: unknown = undefined;
   try {
     const { client_id } = await req.json();
+    clientIdParaLog = client_id;
 
     if (!client_id) {
       return NextResponse.json({ error: "client_id requerido" }, { status: 400 });
@@ -237,7 +244,10 @@ No devuelvas texto fuera del JSON.
 
     return NextResponse.json({ plan_nutricion, plan_entrenamiento, plan_estado: "borrador" });
   } catch (err) {
-    console.error("Error en /api/generar-plan:", err);
+    console.error(
+      `Error en /api/generar-plan (client_id=${clientIdParaLog}):`,
+      err instanceof Error ? err.stack || err.message : err
+    );
     const message = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json({ error: message }, { status: 500 });
   }
