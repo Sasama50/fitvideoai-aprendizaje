@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 interface BotonesAudioProps {
   clienteId: number
@@ -108,7 +109,17 @@ export default function BotonesAudio({
         </div>
       )}
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && (
+        <div>
+          <p className="text-xs text-red-500">{error}</p>
+          <Link
+            href="/onboarding?paso=2"
+            className="text-xs text-indigo-500 hover:text-indigo-400 transition inline-block mt-1"
+          >
+            Configurar mi voz →
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

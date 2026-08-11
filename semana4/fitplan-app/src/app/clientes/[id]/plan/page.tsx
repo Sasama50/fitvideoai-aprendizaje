@@ -8,6 +8,7 @@ import { planNutricionTieneContenido, planEntrenamientoTieneContenido } from '@/
 import { detectarTerminosEnTextos } from '@/lib/detectar-terminos'
 import { GLOSARIO_INGREDIENTES } from '@/lib/glosario-ingredientes'
 import TextoConGlosario from '@/components/TextoConGlosario'
+import VolverButton from '@/components/VolverButton'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -56,12 +57,7 @@ export default async function PlanPage({ params }: Props) {
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="mb-8 relative">
-          <Link
-            href="/clientes"
-            className="text-xs text-gray-400 hover:text-white transition"
-          >
-            ← Volver a clientes
-          </Link>
+          <VolverButton />
           <h1 className="text-3xl font-bold text-white mt-4">{c.nombre}</h1>
           {c.tipo_plan && (
             <span

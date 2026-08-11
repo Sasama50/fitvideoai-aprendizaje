@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Paso = 1 | 2 | 3 | 4;
@@ -14,10 +14,27 @@ function esErrorDeSesion(mensaje: string) {
   return /row-level security|jwt|permission denied/i.test(mensaje);
 }
 
+function pasoInicialDesdeQuery(valor: string | null): Paso {
+  const num = Number(valor);
+  return num === 2 || num === 3 ? num : 1;
+}
+
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const router = useRouter();
-  const [paso, setPaso] = useState<Paso>(1);
+  const searchParams = useSearchParams();
+  const [paso, setPaso] = useState<Paso>(() =>
+    pasoInicialDesdeQuery(searchParams.get("paso"))
+  );
   const [plan, setPlan] = useState<string | null>(null);
+  const [perfilCargado, setPerfilCargado] = useState(false);
 
   // Paso 1 — marca
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -62,10 +79,16 @@ export default function OnboardingPage() {
 
       setPlan(profesional?.plan ?? null);
       setAvatarStatus((profesional?.heygen_avatar_status as AvatarStatus) ?? null);
+      setPerfilCargado(true);
     };
 
     cargarPerfil();
   }, [router]);
+
+  useEffect(() => {
+    if (!perfilCargado) return;
+    setPaso((actual) => (actual > totalPasos ? (totalPasos as Paso) : actual));
+  }, [perfilCargado, totalPasos]);
 
   useEffect(() => {
     if (paso !== 3 || avatarStatus !== "processing") return;
