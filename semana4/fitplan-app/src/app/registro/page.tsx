@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function RegistroPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registrado, setRegistrado] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +24,45 @@ export default function RegistroPage() {
       return;
     }
 
-    router.push("/login");
+    setLoading(false);
+    setRegistrado(true);
   };
+
+  if (registrado) {
+    return (
+      <main
+        className="min-h-screen flex flex-col items-center justify-center px-4"
+        style={{ backgroundColor: "#1a1a2e" }}
+      >
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2">FitPlan AI</h1>
+          </div>
+
+          <div
+            className="rounded-2xl p-8 shadow-2xl text-center"
+            style={{ backgroundColor: "#14532d" }}
+          >
+            <h2 className="text-lg font-semibold text-white mb-3">
+              Usuario registrado ✓
+            </h2>
+            <p className="text-sm text-green-100 mb-6">
+              Confirma el email que te hemos enviado a{" "}
+              <span className="font-medium">{email}</span> para poder iniciar
+              sesión.
+            </p>
+            <a
+              href="/login"
+              className="inline-block py-2.5 px-6 rounded-lg font-semibold text-white text-sm tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95"
+              style={{ backgroundColor: "#e94560" }}
+            >
+              Ir a iniciar sesión
+            </a>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main

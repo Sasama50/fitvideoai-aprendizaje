@@ -72,9 +72,18 @@ function normalizar(texto: string) {
     .toLowerCase()
 }
 
+// Persistidos en sessionStorage (no solo en memoria) para que volver desde
+// /clientes/[id]/plan o /clientes/[id]/editar (navegación completa, no
+// soft-nav) restaure qué tarjeta estaba desplegada en vez de colapsar todo.
+// Nota: con muchos clientes, el acordeón dentro de la lista deja de escalar
+// bien — si crece más, valorar mover estas acciones a una página propia
+// /clientes/[id] en vez de un panel expandible aquí.
+const EXPANDIDOS_STORAGE_KEY = 'clientes_expandidos'
+const CLIENTE_EDITANDO_STORAGE_KEY = 'clientes_cliente_editando'
+
 export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([])
-  const [clienteEditando, setClienteEditando] = useState<number | null>(null)
+  const [clienteEditando, setClienteEditandoState] = useState<number | null>(null)
   const [exitoId, setExitoId] = useState<number | null>(null)
   const [errorAprobar, setErrorAprobar] = useState<{ id: number; mensaje: string } | null>(null)
   const [planVersion, setPlanVersion] = useState<Record<number, number>>({})
@@ -84,6 +93,35 @@ export default function Clientes() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState<'todos' | PlanEstado>('todos')
   const [expandidos, setExpandidos] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    try {
+      const guardadosExpandidos = sessionStorage.getItem(EXPANDIDOS_STORAGE_KEY)
+      if (guardadosExpandidos) {
+        setExpandidos(new Set(JSON.parse(guardadosExpandidos) as number[]))
+      }
+
+      const guardadoEditando = sessionStorage.getItem(CLIENTE_EDITANDO_STORAGE_KEY)
+      if (guardadoEditando) {
+        setClienteEditandoState(JSON.parse(guardadoEditando) as number)
+      }
+    } catch {
+      // sessionStorage no disponible o valor corrupto — arranca colapsado
+    }
+  }, [])
+
+  const setClienteEditando = (clienteId: number | null) => {
+    setClienteEditandoState(clienteId)
+    try {
+      if (clienteId === null) {
+        sessionStorage.removeItem(CLIENTE_EDITANDO_STORAGE_KEY)
+      } else {
+        sessionStorage.setItem(CLIENTE_EDITANDO_STORAGE_KEY, JSON.stringify(clienteId))
+      }
+    } catch {
+      // sessionStorage no disponible — el estado en memoria sigue funcionando
+    }
+  }
 
   const actualizarCliente = (clienteId: number, cambios: Partial<Cliente>) => {
     setClientes((prev) =>
@@ -98,6 +136,11 @@ export default function Clientes() {
         next.delete(clienteId)
       } else {
         next.add(clienteId)
+      }
+      try {
+        sessionStorage.setItem(EXPANDIDOS_STORAGE_KEY, JSON.stringify(Array.from(next)))
+      } catch {
+        // sessionStorage no disponible — el estado en memoria sigue funcionando
       }
       return next
     })

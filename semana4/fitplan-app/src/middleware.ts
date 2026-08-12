@@ -39,7 +39,8 @@ export async function middleware(request: NextRequest) {
     pathname === "/login" ||
     pathname === "/registro" ||
     pathname === "/success" ||
-    pathname.startsWith("/api/");
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/auth/");
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

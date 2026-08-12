@@ -1,14 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+function traducirErrorLogin(mensaje: string): string {
+  if (/email not confirmed/i.test(mensaje)) {
+    return "Tu email todavía no está confirmado. Revisa tu bandeja de entrada.";
+  }
+  if (/invalid login credentials/i.test(mensaje)) {
+    return "Email o contraseña incorrectos.";
+  }
+  return mensaje;
+}
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    searchParams.get("error") === "confirmacion_invalida"
+      ? "El enlace de confirmación no es válido o ha caducado. Pide uno nuevo registrándote de nuevo o inicia sesión si ya confirmaste antes."
+      : ""
+  );
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +43,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setError(traducirErrorLogin(error.message));
       setLoading(false);
       return;
     }
