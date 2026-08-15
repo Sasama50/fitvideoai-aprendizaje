@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const { data: profesional, error: profesionalError } = await supabase
       .from('profesionales')
-      .select('id')
+      .select('id, nombre, color_principal')
       .eq('user_id', user.id)
       .single()
 
@@ -82,8 +82,8 @@ export async function POST(req: NextRequest) {
 
     // 3. Enviar email con Resend
     const asunto = notificarCambio
-      ? `Se ha actualizado tu plan de ${cliente.nombre_profesional || 'tu entrenador'}`
-      : `Tu plan de esta semana de ${cliente.nombre_profesional || 'tu entrenador'}`
+      ? `Se ha actualizado tu plan de ${profesional.nombre || 'tu entrenador'}`
+      : `Tu plan de esta semana de ${profesional.nombre || 'tu entrenador'}`
 
     const tieneVideo = cliente.video_status === 'completado' && !!cliente.video_url
     const tieneAudio = cliente.audio_status === 'completado' && !!cliente.audio_url
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
             ${mensaje}
           </p>
           <a href="${url}"
-             style="display: inline-block; background: #E8463A; color: white; text-decoration: none;
+             style="display: inline-block; background: ${profesional.color_principal || '#E8463A'}; color: white; text-decoration: none;
                     padding: 12px 24px; border-radius: 6px; font-weight: bold; margin: 16px 0;">
             Ver mi plan de esta semana
           </a>

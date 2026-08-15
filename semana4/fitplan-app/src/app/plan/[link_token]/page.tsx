@@ -55,7 +55,7 @@ export default async function PlanCliente({ params }: Props) {
 
   const { data: cliente, error } = await supabase
     .from('clientes')
-    .select('*')
+    .select('*, profesionales(nombre, logo_url, color_principal)')
     .eq('link_cliente', link_token)
     .single()
 
@@ -72,7 +72,8 @@ export default async function PlanCliente({ params }: Props) {
     .eq('link_cliente', link_token)
     .then()
 
-  const colorPrincipal = '#E8463A'
+  const colorPrincipal = cliente.profesionales?.color_principal ?? '#E8463A'
+  const logoUrl = cliente.profesionales?.logo_url as string | null | undefined
   const planNutricion = cliente.plan_nutricion as PlanNutricion | null
   const planEntrenamiento = cliente.plan_entrenamiento as PlanEntrenamiento | null
 
@@ -101,9 +102,18 @@ export default async function PlanCliente({ params }: Props) {
     <div className="min-h-screen bg-gray-50">
       <div style={{ backgroundColor: colorPrincipal }} className="text-white">
         <div className="max-w-2xl mx-auto px-5 py-6">
-          <p className="text-xs font-semibold opacity-70 uppercase tracking-wider mb-1">
-            FitVideoAI
-          </p>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={cliente.profesionales?.nombre ?? 'Tu profesional'}
+              className="h-10 max-h-10 object-contain mb-2"
+            />
+          ) : (
+            <p className="text-xs font-semibold opacity-70 uppercase tracking-wider mb-1">
+              FitVideoAI
+            </p>
+          )}
           <h1 className="text-2xl font-bold">Tu plan de la semana</h1>
           <p className="opacity-80 text-sm mt-1">
             Hola {cliente.nombre} 👋 — Semana {cliente.semana_numero || 1}
