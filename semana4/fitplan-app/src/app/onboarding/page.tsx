@@ -335,7 +335,7 @@ function OnboardingContent() {
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/svg+xml"
                     onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-                    className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:text-white file:cursor-pointer"
+                    className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:text-white file:bg-[#E8463A] file:cursor-pointer hover:file:bg-[#d13a2e]"
                     style={{ backgroundColor: "#0f3460" }}
                   />
                 </div>
@@ -385,7 +385,7 @@ function OnboardingContent() {
                     type="file"
                     accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a"
                     onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
-                    className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:text-white file:cursor-pointer"
+                    className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:text-white file:bg-[#E8463A] file:cursor-pointer hover:file:bg-[#d13a2e]"
                     style={{ backgroundColor: "#0f3460" }}
                   />
                 </div>
@@ -449,7 +449,7 @@ function OnboardingContent() {
                         type="file"
                         accept="video/mp4,video/quicktime,video/webm"
                         onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
-                        className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:text-white file:cursor-pointer"
+                        className="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:text-white file:bg-[#E8463A] file:cursor-pointer hover:file:bg-[#d13a2e]"
                         style={{ backgroundColor: "#0f3460" }}
                       />
                     </div>
