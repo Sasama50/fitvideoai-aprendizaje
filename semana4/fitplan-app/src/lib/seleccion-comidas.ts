@@ -112,6 +112,7 @@ export type ComidaSeleccionada = {
   preparacion: string;
   ajuste_calorico_amplio?: boolean;
   alternativas: AlternativaComida[];
+  alternativas_margen_proteina_relajado?: boolean;
 };
 
 export type PlanComidas = {
@@ -280,15 +281,69 @@ export async function seleccionarComidas(
     }
 
     const resto = candidatas.filter((c) => c !== elegida);
-    const dentroDeMargen = (margen: number) =>
+    const dentroDeMargenCalorico = (margen: number) =>
       resto.filter(
         (c) => Math.abs(c.calorias - elegida.calorias) <= elegida.calorias * margen
       );
 
-    let alternativasCandidatas = dentroDeMargen(0.1);
-    if (alternativasCandidatas.length === 0) {
-      alternativasCandidatas = dentroDeMargen(0.2);
+    let candidatasPorCalorias = dentroDeMargenCalorico(0.1);
+    if (candidatasPorCalorias.length === 0) {
+      candidatasPorCalorias = dentroDeMargenCalorico(0.2);
     }
+
+    // Modo flexible Fase 1 (idea del 07/09, plan externo AEQUILIBRIUM): dos
+    // comidas con las mismas calorias pueden tener perfiles de macros muy
+    // distintos, asi que una alternativa real tambien debe respetar un
+    // margen de proteina frente a la comida elegida (no solo calorias).
+    // +-20% porque el catalogo es pequeno (44 comidas); un margen tan
+    // estricto como el calorico dejaria 0 candidatas a menudo. Por ahora
+    // solo proteina - carbohidratos_g/grasas_g quedan para una fase
+    // posterior si hace falta.
+    const proteinaReferencia = elegida.proteinas_g;
+    const dentroDeMargenProteina = (
+      candidatasBase: ComidaCatalogo[],
+      margen: number
+    ): ComidaCatalogo[] => {
+      if (proteinaReferencia === null) {
+        // Sin proteina registrada en la comida elegida no hay referencia
+        // para comparar: se mantiene el comportamiento anterior (solo
+        // margen calorico) en vez de descartar todo el pool.
+        return candidatasBase;
+      }
+      return candidatasBase.filter(
+        (c) =>
+          c.proteinas_g !== null &&
+          Math.abs(c.proteinas_g - proteinaReferencia) <= proteinaReferencia * margen
+      );
+    };
+
+    const MARGEN_PROTEINA_ALTERNATIVAS = 0.2;
+    let alternativasCandidatas = dentroDeMargenProteina(
+      candidatasPorCalorias,
+      MARGEN_PROTEINA_ALTERNATIVAS
+    );
+
+    // Fallback: si el margen de proteina deja el pool vacio, relajarlo
+    // (nunca el calorico, que ya esta validado) hasta encontrar al menos 1
+    // candidata. Se deja constancia (warning + campo en el resultado) para
+    // poder detectar si esto pasa a menudo con el catalogo actual.
+    let alternativasMargenProteinaRelajado = false;
+    if (alternativasCandidatas.length === 0 && candidatasPorCalorias.length > 0) {
+      const pasosRelajacion = [0.4, 0.6, 1, Number.POSITIVE_INFINITY];
+      for (const margenAmpliado of pasosRelajacion) {
+        alternativasCandidatas = dentroDeMargenProteina(candidatasPorCalorias, margenAmpliado);
+        if (alternativasCandidatas.length > 0) {
+          alternativasMargenProteinaRelajado = true;
+          console.warn(
+            `[seleccion-comidas] "${elegida.nombre}" (${tipoComida}): margen de proteina +-20% sin candidatas dentro del margen calorico; relajado a +-${
+              margenAmpliado === Number.POSITIVE_INFINITY ? "sin limite" : `${margenAmpliado * 100}%`
+            }.`
+          );
+          break;
+        }
+      }
+    }
+
     alternativasCandidatas.sort(
       (a, b) =>
         Math.abs(a.calorias - elegida.calorias) - Math.abs(b.calorias - elegida.calorias)
@@ -314,6 +369,9 @@ export async function seleccionarComidas(
       preparacion: elegida.preparacion,
       ...(ajusteCaloricoAmplio ? { ajuste_calorico_amplio: true } : {}),
       alternativas,
+      ...(alternativasMargenProteinaRelajado
+        ? { alternativas_margen_proteina_relajado: true }
+        : {}),
     });
   }
 
