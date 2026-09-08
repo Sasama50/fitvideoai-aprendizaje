@@ -295,7 +295,7 @@ export async function seleccionarComidas(
     // comidas con las mismas calorias pueden tener perfiles de macros muy
     // distintos, asi que una alternativa real tambien debe respetar un
     // margen de proteina frente a la comida elegida (no solo calorias).
-    // +-20% porque el catalogo es pequeno (44 comidas); un margen tan
+    // +-30% porque el catalogo es pequeno (44 comidas); un margen tan
     // estricto como el calorico dejaria 0 candidatas a menudo. Por ahora
     // solo proteina - carbohidratos_g/grasas_g quedan para una fase
     // posterior si hace falta.
@@ -317,7 +317,7 @@ export async function seleccionarComidas(
       );
     };
 
-    const MARGEN_PROTEINA_ALTERNATIVAS = 0.2;
+    const MARGEN_PROTEINA_ALTERNATIVAS = 0.3;
     let alternativasCandidatas = dentroDeMargenProteina(
       candidatasPorCalorias,
       MARGEN_PROTEINA_ALTERNATIVAS
@@ -335,7 +335,9 @@ export async function seleccionarComidas(
         if (alternativasCandidatas.length > 0) {
           alternativasMargenProteinaRelajado = true;
           console.warn(
-            `[seleccion-comidas] "${elegida.nombre}" (${tipoComida}): margen de proteina +-20% sin candidatas dentro del margen calorico; relajado a +-${
+            `[seleccion-comidas] "${elegida.nombre}" (${tipoComida}): margen de proteina +-${
+              MARGEN_PROTEINA_ALTERNATIVAS * 100
+            }% sin candidatas dentro del margen calorico; relajado a +-${
               margenAmpliado === Number.POSITIVE_INFINITY ? "sin limite" : `${margenAmpliado * 100}%`
             }.`
           );
